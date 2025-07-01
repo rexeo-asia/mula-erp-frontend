@@ -210,22 +210,22 @@ export default function Reports() {
       
       if (selectedReport === 'sales') {
         csvContent += 'Period,Sales Count,Revenue\n';
-        report.data.forEach((row: any) => {
+        report.data.forEach((row: ReportData) => {
           csvContent += `${row.period},${row.sales},${row.revenue}\n`;
         });
       } else if (selectedReport === 'inventory') {
         csvContent += 'Category,Items,Value\n';
-        report.data.forEach((row: any) => {
+        report.data.forEach((row: ReportData) => {
           csvContent += `${row.category},${row.items},${row.value}\n`;
         });
       } else if (selectedReport === 'customers') {
         csvContent += 'Segment,Count,Revenue\n';
-        report.data.forEach((row: any) => {
+        report.data.forEach((row: ReportData) => {
           csvContent += `${row.segment},${row.count},${row.revenue}\n`;
         });
       } else if (selectedReport === 'financial') {
         csvContent += 'Metric,Value,Change %\n';
-        report.data.forEach((row: any) => {
+        report.data.forEach((row: ReportData) => {
           csvContent += `${row.metric},${row.value},${row.change}\n`;
         });
       }
@@ -247,8 +247,8 @@ export default function Reports() {
     const salesData = generateReportData.data;
     
     if (selectedReport === 'sales') {
-      const totalSales = salesData.reduce((sum: number, item: any) => sum + (item.sales || 0), 0);
-      const totalRevenue = salesData.reduce((sum: number, item: any) => sum + (item.revenue || 0), 0);
+      const totalSales = salesData.reduce((sum: number, item: ReportData) => sum + (item.sales || 0), 0);
+      const totalRevenue = salesData.reduce((sum: number, item: ReportData) => sum + (item.revenue || 0), 0);
       const avgSaleValue = totalSales > 0 ? totalRevenue / totalSales : 0;
       
       return {
@@ -258,8 +258,8 @@ export default function Reports() {
         periodCount: salesData.length
       };
     } else if (selectedReport === 'inventory') {
-      const totalItems = salesData.reduce((sum: number, item: any) => sum + (item.items || 0), 0);
-      const totalValue = salesData.reduce((sum: number, item: any) => sum + (item.value || 0), 0);
+      const totalItems = salesData.reduce((sum: number, item: ReportData) => sum + (item.items || 0), 0);
+      const totalValue = salesData.reduce((sum: number, item: ReportData) => sum + (item.value || 0), 0);
       
       return {
         totalItems,
@@ -268,8 +268,8 @@ export default function Reports() {
         categoryCount: salesData.length
       };
     } else if (selectedReport === 'customers') {
-      const totalCustomers = salesData.reduce((sum: number, item: any) => sum + (item.count || 0), 0);
-      const totalRevenue = salesData.reduce((sum: number, item: any) => sum + (item.revenue || 0), 0);
+      const totalCustomers = salesData.reduce((sum: number, item: ReportData) => sum + (item.count || 0), 0);
+      const totalRevenue = salesData.reduce((sum: number, item: ReportData) => sum + (item.revenue || 0), 0);
       
       return {
         totalCustomers,
@@ -374,7 +374,7 @@ export default function Reports() {
       </div>
 
       {/* Summary Statistics */}
-      {selectedReport === 'sales' && (
+      {selectedReport === 'sales' && summaryStats.totalSales && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center">
@@ -470,31 +470,31 @@ export default function Reports() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {generateReportData.data.map((row: any, index: number) => (
+              {generateReportData.data.map((row: ReportData, index: number) => (
                 <tr key={index} className="hover:bg-gray-50">
                   {selectedReport === 'sales' && (
                     <>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.period}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.sales}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.revenue.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${(row.revenue / row.sales).toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.revenue?.toLocaleString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${(row.revenue && row.sales ? row.revenue / row.sales : 0).toFixed(2)}</td>
                     </>
                   )}
                   {selectedReport === 'inventory' && (
                     <>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.category}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.items}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.value.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${(row.value / row.items).toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.value?.toLocaleString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${(row.value && row.items ? row.value / row.items : 0).toFixed(2)}</td>
                     </>
                   )}
                   {selectedReport === 'customers' && (
                     <>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.segment}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.count}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.revenue.toLocaleString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.revenue?.toLocaleString()}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {row.count > 0 ? `$${(row.revenue / row.count).toFixed(2)}` : '$0.00'}
+                        {row.count && row.revenue ? `$${(row.revenue / row.count).toFixed(2)}` : '$0.00'}
                       </td>
                     </>
                   )}
@@ -502,20 +502,20 @@ export default function Reports() {
                     <>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.metric}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {row.metric.includes('Margin') ? `${row.value}%` : 
-                         row.metric.includes('Revenue') || row.metric.includes('Expenses') || row.metric.includes('Profit') ? 
-                         `$${row.value.toLocaleString()}` : row.value}
+                        {row.metric?.includes('Margin') ? `${row.value}%` : 
+                         row.metric?.includes('Revenue') || row.metric?.includes('Expenses') || row.metric?.includes('Profit') ? 
+                         `$${row.value?.toLocaleString()}` : row.value}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`${row.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {row.change >= 0 ? '+' : ''}{row.change}%
+                        <span className={`${row.change && row.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {row.change && row.change >= 0 ? '+' : ''}{row.change}%
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          row.change >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          row.change && row.change >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
-                          {row.change >= 0 ? '↗ Growing' : '↘ Declining'}
+                          {row.change && row.change >= 0 ? '↗ Growing' : '↘ Declining'}
                         </span>
                       </td>
                     </>

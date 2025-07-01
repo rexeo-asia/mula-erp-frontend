@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, CreditCard, AlertCircle, Wifi, WifiOff, Package, Settings, Monitor } from 'lucide-react';
-import { useConfig } from '../hooks/useConfig';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { ShoppingCart, Scan, Link, Server, AlertTriangle } from 'lucide-react';
 
 interface CartItem {
   id: string;
@@ -15,318 +15,204 @@ interface SessionData {
   timestamp: number;
 }
 
-type ScreenSize = 'full' | '75' | '50';
+interface ActiveSession {
+  id: string;
+  name: string;
+  hash: string;
+}
 
 export default function CustomerDisplay() {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [sessionHash, setSessionHash] = useState<string>('');
-  const [isConnected, setIsConnected] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [sessionData, setSessionData] = useState<SessionData | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
+  const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
   const [error, setError] = useState<string>('');
-  const [lastUpdate, setLastUpdate] = useState<number>(0);
-  const [screenSize, setScreenSize] = useState<ScreenSize>('full');
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const settingsRef = useRef<HTMLDivElement>(null);
 
-  const { config } = useConfig();
-  const companyName = config?.companyName || 'MulaERP';
-  const currency = config?.currency || 'USD';
-  const currencySymbol = currency === 'MYR' ? 'RM' : ';
+  const sessionHash = searchParams.get('hash');
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
-        setIsSettingsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-  
-  useEffect(() => {
-    // Get session hash from URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const hash = urlParams.get('hash');
-    
-    if (!hash) {
-      setError('No session hash provided. Please access this page from the POS terminal.');
-      return;
-    }
-
-    setSessionHash(hash);
-    setError('');
-
-    const updateCart = () => {
-      try {
-        // Try to get session data from localStorage
-        const sessionData = localStorage.getItem(`pos-session-${hash}`);
-        
-        if (sessionData) {
-          const data: SessionData = JSON.parse(sessionData);
-          
-          // Verify the hash matches and data is recent (within last 30 seconds)
-          const now = Date.now();
-          const dataAge = now - data.timestamp;
-          
-          if (data.hash === hash && dataAge < 30000) {
-            setCart(data.cart || []);
-            const newTotal = (data.cart || []).reduce((sum: number, item: CartItem) => sum + (item.price * item.quantity), 0);
-            setTotal(newTotal);
-            setLastUpdate(data.timestamp);
-            setIsConnected(true);
-            setError('');
-          } else if (dataAge >= 30000) {
-            setError('Session expired. Please refresh the POS terminal.');
-            setIsConnected(false);
-          } else {
-            setError('Invalid session hash');
-            setIsConnected(false);
-          }
-        } else {
-          // Check if this is the first load or if session doesn't exist yet
-          if (lastUpdate === 0) {
-            setError('Waiting for POS terminal connection...');
-            setIsConnected(false);
-          } else {
-            // Session was active but now missing
-            const now = Date.now();
-            if ((now - lastUpdate) > 30000) {
-              setError('Session expired or POS terminal disconnected');
-              setIsConnected(false);
+    const findActiveSessions = () => {
+      const sessions: ActiveSession[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('pos-session-hash-')) {
+          const hash = localStorage.getItem(key);
+          if (hash) {
+            const sessionDetails = localStorage.getItem(`pos-session-details-${hash}`);
+            if (sessionDetails) {
+              const details = JSON.parse(sessionDetails);
+              sessions.push({ id: details.id, name: details.name, hash });
             }
           }
         }
-      } catch (err) {
-        console.error('Error loading session data:', err);
-        setError('Failed to load session data');
-        setIsConnected(false);
+      }
+      setActiveSessions(sessions);
+    };
+
+    findActiveSessions();
+    const interval = setInterval(findActiveSessions, 5000); // Refresh active sessions every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const loadSessionData = () => {
+      if (!sessionHash) {
+        setSessionData(null);
+        return;
+      }
+
+      try {
+        const data = localStorage.getItem(`pos-session-${sessionHash}`);
+        if (data) {
+          const parsedData: SessionData = JSON.parse(data);
+          setSessionData(parsedData);
+          setLastUpdated(new Date(parsedData.timestamp).toLocaleTimeString());
+          setError('');
+        } else {
+          setError('No active session found for this hash. Please check the hash or select an active session.');
+          setSessionData(null);
+        }
+      } catch (e) {
+        setError('Failed to parse session data. The data may be corrupted.');
+        setSessionData(null);
       }
     };
 
-    // Initial load
-    updateCart();
+    loadSessionData();
 
-    // Listen for storage changes (when POS terminal updates the cart)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === `pos-session-${hash}` || e.key === null) {
-        updateCart();
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === `pos-session-${sessionHash}` || event.key === null) {
+        loadSessionData();
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
 
-    // Poll for updates every 2 seconds
-    const interval = setInterval(updateCart, 2000);
-
-    // Connection timeout check every 5 seconds
-    const connectionCheck = setInterval(() => {
-      const now = Date.now();
-      if (lastUpdate > 0 && (now - lastUpdate) > 30000) {
-        setIsConnected(false);
-        setError('Connection lost. Please check POS terminal.');
-      }
-    }, 5000);
-
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-      clearInterval(connectionCheck);
     };
-  }, [sessionHash, lastUpdate]);
+  }, [sessionHash]);
 
-  // Auto-refresh page if disconnected for too long
-  useEffect(() => {
-    if (!isConnected && lastUpdate > 0) {
-      const timeout = setTimeout(() => {
-        window.location.reload();
-      }, 60000); // Refresh after 1 minute of disconnection
+  const handleSessionSelect = (hash: string) => {
+    setSearchParams({ hash });
+  };
 
-      return () => clearTimeout(timeout);
-    }
-  }, [isConnected, lastUpdate]);
+  const getTotal = () => {
+    if (!sessionData) return 0;
+    return sessionData.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  };
 
-  const screenSizeClass = {
-    full: 'w-full h-full',
-    '75': 'w-[75vw] h-[75vh]',
-    '50': 'w-[50vw] h-[50vh]',
-  }[screenSize];
-
-  if (error && !sessionHash) {
+  if (!sessionHash) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <AlertCircle size={64} className="mx-auto mb-4 text-red-400" />
-          <h2 className="text-2xl font-bold mb-4">Connection Error</h2>
-          <p className="text-gray-400 mb-6">{error}</p>
-          <div className="bg-gray-900 p-4 rounded-lg">
-            <p className="text-sm text-gray-500">To access the customer display:</p>
-            <ol className="text-sm text-gray-400 mt-2 text-left">
-              <li>1. Open the POS terminal</li>
-              <li>2. Start a POS session</li>
-              <li>3. Click "Display" button</li>
-              <li>4. Or use the session hash provided</li>
-            </ol>
-          </div>
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+        <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 text-center">
+          <Server size={48} className="mx-auto text-blue-500 mb-4" />
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Select a POS Session</h1>
+          <p className="text-gray-600 mb-6">Choose an active session to display customer information.</p>
+          {activeSessions.length > 0 ? (
+            <div className="space-y-3">
+              {activeSessions.map(session => (
+                <button
+                  key={session.id}
+                  onClick={() => handleSessionSelect(session.hash)}
+                  className="w-full text-left bg-gray-50 hover:bg-blue-100 border border-gray-200 rounded-lg p-4 transition-colors duration-200"
+                >
+                  <div className="font-semibold text-blue-800">{session.name}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Hash: <span className="font-mono bg-gray-200 px-1 rounded">{session.hash}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="text-gray-500 bg-gray-50 p-4 rounded-lg">
+              <p>No active POS sessions detected.</p>
+              <p className="text-sm mt-1">Please start a new session in the main POS window.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+        <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 text-center">
+          <AlertTriangle size={48} className="mx-auto text-red-500 mb-4" />
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Session Error</h1>
+          <p className="text-red-600 mb-6">{error}</p>
+          <button
+            onClick={() => setSearchParams({})}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Select a different session
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen bg-black text-white flex flex-col transition-all duration-300 ${screenSize !== 'full' ? 'items-center justify-center' : ''}`}>
-     <div className={`bg-black border border-gray-800 rounded-lg shadow-2xl flex flex-col ${screenSizeClass}`}>
-      {/* Header */}
-      <div className="bg-gray-900 p-4 text-center border-b border-gray-700 flex justify-between items-center">
-        <div className="flex-1"></div>
-        <div className="flex-1 flex justify-center items-center space-x-2">
-          <ShoppingCart className="text-blue-400" size={24} />
-          <h1 className="text-2xl font-bold">{companyName} POS</h1>
-        </div>
-        <div className="flex-1 flex justify-end">
-          <div className="relative" ref={settingsRef}>
-            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className="text-gray-400 hover:text-white">
-              <Settings size={20} />
-            </button>
-            {isSettingsOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10">
-                <div className="p-2">
-                  <p className="text-xs text-gray-400 mb-2 px-2">Screen Size</p>
-                  <button onClick={() => { setScreenSize('full'); setIsSettingsOpen(false); }} className="w-full text-left px-2 py-1 text-sm hover:bg-gray-700 rounded flex items-center">
-                    <Monitor size={14} className="mr-2" /> Full Screen
-                  </button>
-                  <button onClick={() => { setScreenSize('75'); setIsSettingsOpen(false); }} className="w-full text-left px-2 py-1 text-sm hover:bg-gray-700 rounded flex items-center">
-                    <Monitor size={14} className="mr-2" /> 75%
-                  </button>
-                  <button onClick={() => { setScreenSize('50'); setIsSettingsOpen(false); }} className="w-full text-left px-2 py-1 text-sm hover:bg-gray-700 rounded flex items-center">
-                    <Monitor size={14} className="mr-2" /> 50%
-                  </button>
-                </div>
-              </div>
-            )}
+    <div className="min-h-screen bg-gray-900 text-white p-8 font-sans">
+      <div className="max-w-4xl mx-auto">
+        <header className="flex justify-between items-center pb-6 border-b-2 border-gray-700">
+          <div className="flex items-center">
+            <ShoppingCart size={40} className="text-blue-400 mr-4" />
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight">Your Order</h1>
+              <p className="text-gray-400">Thank you for shopping with us!</p>
+            </div>
           </div>
-        </div>
-      </div>
-      <div className="flex-grow flex flex-col">
-        <div className="flex items-center justify-center space-x-4 p-2 border-b border-gray-800">
-          <p className="text-gray-400 text-sm">Customer Display</p>
-          <div className="flex items-center space-x-1">
-            {isConnected ? (
-              <>
-                <Wifi size={14} className="text-green-400" />
-                <span className="text-xs text-green-400">Connected</span>
-              </>
-            ) : (
-              <>
-                <WifiOff size={14} className="text-red-400" />
-                <span className="text-xs text-red-400">Disconnected</span>
-              </>
-            )}
+          <div className="text-right">
+            <p className="text-sm text-gray-500">Session Hash</p>
+            <p className="font-mono text-lg bg-gray-800 px-3 py-1 rounded-md">{sessionHash}</p>
           </div>
-        </div>
-        {sessionHash && (
-          <p className="text-xs text-gray-500 text-center py-1 bg-gray-900">
-            Session: {sessionHash}
-          </p>
-        )}
+        </header>
 
-      {/* Connection Status Banner */}
-      {error && isConnected === false && (
-        <div className="bg-red-900 border-b border-red-700 p-3 text-center">
-          <div className="flex items-center justify-center space-x-2">
-            <AlertCircle size={16} className="text-red-400" />
-            <span className="text-red-200 text-sm">{error}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col justify-center p-8">
-        {cart.length === 0 ? (
-          <div className="text-center">
-            <ShoppingCart size={120} className="mx-auto mb-6 text-gray-600" />
-            <h2 className="text-4xl font-light mb-4">Welcome</h2>
-            <p className="text-xl text-gray-400">Your items will appear here</p>
-            {!isConnected && (
-              <div className="mt-6">
-                <div className="inline-flex items-center space-x-2 bg-yellow-900 border border-yellow-700 rounded-lg px-4 py-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-400"></div>
-                  <span className="text-yellow-200 text-sm">
-                    {error || 'Connecting to POS terminal...'}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="max-w-2xl mx-auto w-full">
-            {/* Cart Items */}
-            <div className="space-y-4 mb-8 max-h-96 overflow-y-auto">
-              {cart.map((item, index) => (
-                <div key={`${item.id}-${index}`} className="flex justify-between items-center p-4 bg-gray-900 rounded-lg border border-gray-700">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center">
-                      <Package size={20} className="text-gray-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-xl font-medium">{item.name}</h3>
-                      <p className="text-gray-400">{currencySymbol}{item.price.toFixed(2)} each</p>
-                    </div>
+        <main className="mt-8">
+          {sessionData && sessionData.cart.length > 0 ? (
+            <div className="space-y-4">
+              {sessionData.cart.map((item) => (
+                <div key={item.id} className="flex items-center bg-gray-800 p-4 rounded-lg shadow-md text-lg">
+                  <div className="flex-1">
+                    <p className="font-semibold text-xl">{item.name}</p>
+                    <p className="text-gray-400 text-sm">
+                      ${item.price.toFixed(2)} x {item.quantity}
+                    </p>
                   </div>
-                  <div className="text-right">
-                    <div className="text-lg">Qty: {item.quantity}</div>
-                    <div className="text-xl font-semibold text-blue-400">
-                      {currencySymbol}{(item.price * item.quantity).toFixed(2)}
-                    </div>
-                  </div>
+                  <p className="font-bold text-2xl text-blue-400">
+                    ${(item.price * item.quantity).toFixed(2)}
+                  </p>
                 </div>
               ))}
             </div>
-
-            {/* Total */}
-            <div className="border-t border-gray-700 pt-6">
-              <div className="flex justify-between items-center mb-6">
-                <span className="text-2xl font-light">Total:</span>
-                <span className="text-5xl font-bold text-green-400">{currencySymbol}{total.toFixed(2)}</span>
-              </div>
-
-              {/* Payment Methods */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-green-900 border border-green-700 rounded-lg p-4 text-center">
-                  <CreditCard size={32} className="mx-auto mb-2 text-green-400" />
-                  <p className="text-green-300">Card Payment</p>
-                  <p className="text-sm text-green-500">Tap, Insert, or Swipe</p>
-                </div>
-                <div className="bg-blue-900 border border-blue-700 rounded-lg p-4 text-center">
-                  <div className="w-8 h-8 mx-auto mb-2 bg-blue-400 rounded flex items-center justify-center">
-                    <span className="text-blue-900 font-bold text-sm">{currencySymbol}</span>
-                  </div>
-                  <p className="text-blue-300">Cash Payment</p>
-                  <p className="text-sm text-blue-500">Pay with Cash</p>
-                </div>
-              </div>
+          ) : (
+            <div className="text-center py-20">
+              <Scan size={64} className="mx-auto text-gray-600 mb-4" />
+              <p className="text-2xl text-gray-500">Waiting for items...</p>
+              <p className="text-gray-600">Your items will appear here once they are scanned.</p>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </main>
 
-      {/* Footer */}
-      <div className="bg-gray-900 p-4 text-center border-t border-gray-700">
-        <p className="text-gray-500 text-sm">Thank you for shopping with us!</p>
-        {lastUpdate > 0 && (
-          <p className="text-xs text-gray-600 mt-1">
-            Last updated: {new Date(lastUpdate).toLocaleTimeString()}
-          </p>
+        {sessionData && sessionData.cart.length > 0 && (
+          <footer className="mt-8 pt-6 border-t-2 border-gray-700">
+            <div className="flex justify-between items-center">
+              <p className="text-2xl font-medium text-gray-300">Total</p>
+              <p className="text-5xl font-bold text-blue-400">${getTotal().toFixed(2)}</p>
+            </div>
+          </footer>
         )}
-        {isConnected && (
-          <div className="flex items-center justify-center space-x-2 mt-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-xs text-green-400">Live connection active</span>
+
+        <div className="text-center mt-8 text-xs text-gray-600">
+          <p>Last updated: {lastUpdated}</p>
+          <div className="flex items-center justify-center space-x-2 mt-1">
+            <Link size={12} />
+            <span>Connected to MulaPOS</span>
           </div>
-        )}
+        </div>
       </div>
-     </div>
     </div>
   );
 }

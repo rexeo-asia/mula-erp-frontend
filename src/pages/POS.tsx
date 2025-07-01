@@ -96,17 +96,29 @@ export default function POS() {
 
   // Generate session hash on component mount
   useEffect(() => {
-    if (currentSession) {
+    if (currentSession && currentSession.status === 'opened') {
       const generateSessionHash = () => {
-        const timestamp = Date.now();
-        const randomString = Math.random().toString(36).substring(2, 15);
-        const hash = btoa(`pos-session-${Date.now()}-${Math.random()}`);
-        return hash;
+        // Keep it short and simple
+        return Math.random().toString(36).substring(2, 8).toUpperCase();
       };
 
       const hash = generateSessionHash();
       setSessionHash(hash);
-      localStorage.setItem('pos-session-hash', hash);
+
+      // Store the hash and session details for the customer display page
+      localStorage.setItem(`pos-session-hash-${currentSession.id}`, hash);
+      localStorage.setItem(`pos-session-details-${hash}`, JSON.stringify({
+        id: currentSession.id,
+        name: currentSession.name,
+      }));
+    } else if (currentSession && currentSession.status === 'closed') {
+      // Clean up local storage on session close
+      const hash = localStorage.getItem(`pos-session-hash-${currentSession.id}`);
+      if (hash) {
+        localStorage.removeItem(`pos-session-details-${hash}`);
+        localStorage.removeItem(`pos-session-${hash}`);
+        localStorage.removeItem(`pos-session-hash-${currentSession.id}`);
+      }
     }
   }, [currentSession]);
 
@@ -247,7 +259,7 @@ export default function POS() {
   };
 
   const openCustomerDisplay = () => {
-    const url = `/customer-display?hash=${sessionHash}`;
+    const url = `/customer-display`;
     window.open(url, '_blank', 'width=800,height=600,toolbar=no,menubar=no,scrollbars=yes,resizable=yes');
   };
 
@@ -283,10 +295,19 @@ export default function POS() {
     setCurrentSession(updatedSession);
     localStorage.setItem('pos-current-session', JSON.stringify(updatedSession));
 
-    alert(`Processing ${method} payment for $${total.toFixed(2)}`);
+    alert(`Processing ${method} payment for ${total.toFixed(2)}`);
     
     setTimeout(() => {
       clearCart();
+      // Also clear the cart in the customer display
+      if (sessionHash) {
+        localStorage.setItem(`pos-session-${sessionHash}`, JSON.stringify({
+          hash: sessionHash,
+          cart: [],
+          timestamp: Date.now()
+        }));
+        window.dispatchEvent(new Event('storage'));
+      }
       alert('Payment successful! Receipt printed.');
     }, 1500);
   };
