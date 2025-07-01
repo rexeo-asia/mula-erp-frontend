@@ -8,13 +8,14 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install --omit=dev
+RUN npm install
 
 # Copy source code
 COPY . .
 
 # Build the application
-RUN npm run build
+ARG VITE_BASE_URL
+RUN npm run build -- --base=${VITE_BASE_URL}
 
 # Production stage
 FROM nginx:alpine

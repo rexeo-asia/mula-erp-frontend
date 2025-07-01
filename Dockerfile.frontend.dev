@@ -1,0 +1,18 @@
+# Development stage for React frontend using a simple static server
+FROM node:20-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+# Copy all source code
+COPY . .
+
+# Install dependencies
+RUN npm install
+
+# Build the application
+ARG VITE_BASE_URL
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+
