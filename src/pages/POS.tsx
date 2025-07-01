@@ -100,7 +100,7 @@ export default function POS() {
       const generateSessionHash = () => {
         const timestamp = Date.now();
         const randomString = Math.random().toString(36).substring(2, 15);
-        const hash = btoa(`pos-session-${timestamp}-${randomString}`).substring(0, 16);
+        const hash = btoa(`pos-session-${Date.now()}-${Math.random()}`);
         return hash;
       };
 

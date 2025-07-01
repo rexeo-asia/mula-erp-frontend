@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ShoppingCart, CreditCard, AlertCircle, Wifi, WifiOff, Package } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ShoppingCart, CreditCard, AlertCircle, Wifi, WifiOff, Package, Settings, Monitor } from 'lucide-react';
 import { useConfig } from '../hooks/useConfig';
 
 interface CartItem {
@@ -15,6 +15,8 @@ interface SessionData {
   timestamp: number;
 }
 
+type ScreenSize = 'full' | '75' | '50';
+
 export default function CustomerDisplay() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -22,12 +24,27 @@ export default function CustomerDisplay() {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string>('');
   const [lastUpdate, setLastUpdate] = useState<number>(0);
+  const [screenSize, setScreenSize] = useState<ScreenSize>('full');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
 
   const { config } = useConfig();
   const companyName = config?.companyName || 'MulaERP';
   const currency = config?.currency || 'USD';
-  const currencySymbol = currency === 'MYR' ? 'RM' : '$';
+  const currencySymbol = currency === 'MYR' ? 'RM' : ';
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setIsSettingsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
   useEffect(() => {
     // Get session hash from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
@@ -130,6 +147,12 @@ export default function CustomerDisplay() {
     }
   }, [isConnected, lastUpdate]);
 
+  const screenSizeClass = {
+    full: 'w-full h-full',
+    '75': 'w-[75vw] h-[75vh]',
+    '50': 'w-[50vw] h-[50vh]',
+  }[screenSize];
+
   if (error && !sessionHash) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -152,35 +175,61 @@ export default function CustomerDisplay() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className={`min-h-screen bg-black text-white flex flex-col transition-all duration-300 ${screenSize !== 'full' ? 'items-center justify-center' : ''}`}>
+     <div className={`bg-black border border-gray-800 rounded-lg shadow-2xl flex flex-col ${screenSizeClass}`}>
       {/* Header */}
-      <div className="bg-gray-900 p-6 text-center border-b border-gray-700">
-        <div className="flex justify-center items-center space-x-3 mb-2">
-          <ShoppingCart className="text-blue-400" size={32} />
-          <h1 className="text-3xl font-bold">{companyName} POS</h1>
+      <div className="bg-gray-900 p-4 text-center border-b border-gray-700 flex justify-between items-center">
+        <div className="flex-1"></div>
+        <div className="flex-1 flex justify-center items-center space-x-2">
+          <ShoppingCart className="text-blue-400" size={24} />
+          <h1 className="text-2xl font-bold">{companyName} POS</h1>
         </div>
-        <div className="flex items-center justify-center space-x-4">
-          <p className="text-gray-400">Customer Display</p>
+        <div className="flex-1 flex justify-end">
+          <div className="relative" ref={settingsRef}>
+            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className="text-gray-400 hover:text-white">
+              <Settings size={20} />
+            </button>
+            {isSettingsOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10">
+                <div className="p-2">
+                  <p className="text-xs text-gray-400 mb-2 px-2">Screen Size</p>
+                  <button onClick={() => { setScreenSize('full'); setIsSettingsOpen(false); }} className="w-full text-left px-2 py-1 text-sm hover:bg-gray-700 rounded flex items-center">
+                    <Monitor size={14} className="mr-2" /> Full Screen
+                  </button>
+                  <button onClick={() => { setScreenSize('75'); setIsSettingsOpen(false); }} className="w-full text-left px-2 py-1 text-sm hover:bg-gray-700 rounded flex items-center">
+                    <Monitor size={14} className="mr-2" /> 75%
+                  </button>
+                  <button onClick={() => { setScreenSize('50'); setIsSettingsOpen(false); }} className="w-full text-left px-2 py-1 text-sm hover:bg-gray-700 rounded flex items-center">
+                    <Monitor size={14} className="mr-2" /> 50%
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="flex-grow flex flex-col">
+        <div className="flex items-center justify-center space-x-4 p-2 border-b border-gray-800">
+          <p className="text-gray-400 text-sm">Customer Display</p>
           <div className="flex items-center space-x-1">
             {isConnected ? (
               <>
-                <Wifi size={16} className="text-green-400" />
+                <Wifi size={14} className="text-green-400" />
                 <span className="text-xs text-green-400">Connected</span>
               </>
             ) : (
               <>
-                <WifiOff size={16} className="text-red-400" />
+                <WifiOff size={14} className="text-red-400" />
                 <span className="text-xs text-red-400">Disconnected</span>
               </>
             )}
           </div>
         </div>
         {sessionHash && (
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-gray-500 text-center py-1 bg-gray-900">
             Session: {sessionHash}
           </p>
         )}
-      </div>
 
       {/* Connection Status Banner */}
       {error && isConnected === false && (
@@ -277,6 +326,7 @@ export default function CustomerDisplay() {
           </div>
         )}
       </div>
+     </div>
     </div>
   );
 }
