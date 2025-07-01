@@ -1,6 +1,6 @@
-
+import React from 'react';
 import { Search, User, LogOut } from 'lucide-react';
-import { useAuth } from '../../contexts/useAuth';
+import { useAuth } from '../../contexts/AuthContext';
 import { useConfig } from '../../hooks/useConfig';
 import NotificationDropdown from './NotificationDropdown';
 

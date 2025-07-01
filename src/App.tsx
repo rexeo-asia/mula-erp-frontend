@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -18,8 +18,7 @@ import HumanResources from './pages/HumanResources';
 import CRM from './pages/CRM';
 import Notifications from './pages/Notifications';
 import Login from './pages/Login';
-import { AuthProvider } from './contexts/AuthContext';
-import { useAuth } from './contexts/useAuth';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 
 function AppContent() {

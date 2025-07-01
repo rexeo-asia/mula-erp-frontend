@@ -1,30 +1,11 @@
 import React, { useState } from 'react';
 import { X, Save, Clock } from 'lucide-react';
 
-interface BillOfMaterials {
-  id: string;
-  productName: string;
-}
-
-interface WorkOrder {
-  id: string;
-  bomId: string;
-  productName: string;
-  quantity: number;
-  status: string;
-  startDate: string;
-  expectedEndDate: string;
-  assignedTo: string;
-  priority: string;
-  progress: number;
-  notes: string;
-}
-
 interface AddWorkOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (workOrder: WorkOrder) => void;
-  billsOfMaterials: BillOfMaterials[];
+  onSave: (workOrder: any) => void;
+  billsOfMaterials: any[];
 }
 
 export default function AddWorkOrderModal({ isOpen, onClose, onSave, billsOfMaterials }: AddWorkOrderModalProps) {

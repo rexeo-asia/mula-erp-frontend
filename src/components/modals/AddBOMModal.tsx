@@ -9,22 +9,10 @@ interface Component {
   cost: number;
 }
 
-interface BOM {
-  id: string;
-  productId: string;
-  productName: string;
-  components: Component[];
-  totalCost: number;
-  laborHours: number;
-  laborCost: number;
-  overheadCost: number;
-  finalCost: number;
-}
-
 interface AddBOMModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (bom: BOM) => void;
+  onSave: (bom: any) => void;
 }
 
 export default function AddBOMModal({ isOpen, onClose, onSave }: AddBOMModalProps) {
@@ -57,7 +45,7 @@ export default function AddBOMModal({ isOpen, onClose, onSave }: AddBOMModalProp
     setComponents(prev => prev.filter((_, i) => i !== index));
   };
 
-  const updateComponent = (index: number, field: keyof Component, value: string | number) => {
+  const updateComponent = (index: number, field: keyof Component, value: any) => {
     setComponents(prev => prev.map((comp, i) => 
       i === index ? { ...comp, [field]: value } : comp
     ));

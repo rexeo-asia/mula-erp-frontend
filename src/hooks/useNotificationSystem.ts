@@ -1,15 +1,5 @@
 import { useEffect } from 'react';
-import { useNotifications } from '../contexts/useNotifications';
-
-type NotificationData = {
-  productName?: string;
-  quantity?: number;
-  orderId?: string;
-  customerName?: string;
-  invoiceId?: string;
-  days?: number;
-  amount?: number;
-};
+import { useNotifications } from '../contexts/NotificationContext';
 
 // Hook to automatically generate system notifications based on business logic
 export const useNotificationSystem = () => {
@@ -37,7 +27,7 @@ export const useNotificationSystem = () => {
           },
           {
             title: 'Payment Received',
-            message: `Payment of ${(Math.random() * 5000 + 500).toFixed(2)} received`,
+            message: `Payment of $${(Math.random() * 5000 + 500).toFixed(2)} received`,
             type: 'success' as const,
             actionUrl: '/invoicing',
             actionLabel: 'View Invoices'
@@ -60,7 +50,7 @@ export const useNotificationSystem = () => {
   }, [addNotification]);
 
   // Function to trigger specific business notifications
-  const triggerBusinessNotification = (type: string, data: NotificationData) => {
+  const triggerBusinessNotification = (type: string, data: any) => {
     switch (type) {
       case 'low_stock':
         addNotification({
@@ -95,7 +85,7 @@ export const useNotificationSystem = () => {
       case 'payment_received':
         addNotification({
           title: 'Payment Received',
-          message: `Payment of ${data.amount} received for invoice ${data.invoiceId}`,
+          message: `Payment of $${data.amount} received for invoice ${data.invoiceId}`,
           type: 'success',
           actionUrl: '/invoicing',
           actionLabel: 'View Invoices'

@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -49,7 +49,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     if (!config) return true; // Show all items if config is not loaded yet
     
     const isEnabled = config[item.configKey as keyof typeof config];
-    return isEnabled === 'true';
+    return isEnabled === true;
   });
 
   return (

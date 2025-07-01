@@ -1,25 +1,10 @@
 import React, { useState } from 'react';
 import { X, Save, Package } from 'lucide-react';
 
-interface Item {
-  id: string;
-  name: string;
-  sku: string;
-  category: string;
-  price: number;
-  quantity: number;
-  minStock: number;
-  description: string;
-  supplier: string;
-  location: string;
-  status: string;
-  createdAt: string;
-}
-
 interface AddItemModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (item: Item) => void;
+  onSave: (item: any) => void;
 }
 
 export default function AddItemModal({ isOpen, onClose, onSave }: AddItemModalProps) {

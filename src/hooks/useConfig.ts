@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
-import * as ConfigService from '../services/configService';
-
-export interface ConfigData {
-    [key: string]: string;
-}
+import ConfigService, { ConfigData } from '../services/configService';
 
 export function useConfig() {
   const [config, setConfig] = useState<ConfigData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const configService = ConfigService.getInstance();
 
   useEffect(() => {
     loadConfig();
@@ -18,8 +16,8 @@ export function useConfig() {
     try {
       setLoading(true);
       setError(null);
-      const data = await ConfigService.getAppConfig();
-      setConfig(data.data);
+      const data = await configService.getAllConfigs();
+      setConfig(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load configuration');
     } finally {
@@ -27,27 +25,22 @@ export function useConfig() {
     }
   };
 
-  // const updateConfig = async (key: string, value: any): Promise<boolean> => {
-  //   try {
-  //     // Assuming a setAppConfig function exists in configService
-  //     // const success = await ConfigService.setAppConfig(key, value);
-  //     // if (success && config) {
-  //     //   setConfig({ ...config, [key]: value });
-  //     // }
-  //     // return success;
-  //     return true;
-  //   } catch (err) {
-  //     setError(err instanceof Error ? err.message : 'Failed to update configuration');
-  //     return false;
-  //   }
-  // };
-
-  const getConfigValue = async (key: string): Promise<string | null> => {
+  const updateConfig = async (key: string, value: any): Promise<boolean> => {
     try {
-        if(config && config[key]) {
-            return config[key];
-        }
-        return null;
+      const success = await configService.setConfig(key, value);
+      if (success && config) {
+        setConfig({ ...config, [key]: value });
+      }
+      return success;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update configuration');
+      return false;
+    }
+  };
+
+  const getConfigValue = async (key: string): Promise<any> => {
+    try {
+      return await configService.getConfig(key);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to get configuration value');
       return null;
@@ -56,9 +49,7 @@ export function useConfig() {
 
   const validateConfig = async (): Promise<boolean> => {
     try {
-      // Assuming a validateConfig function exists in configService
-      // return await ConfigService.validateConfig();
-      return true;
+      return await configService.validateConfig();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to validate configuration');
       return false;
@@ -66,6 +57,7 @@ export function useConfig() {
   };
 
   const refreshConfig = () => {
+    configService.clearCache();
     loadConfig();
   };
 
@@ -73,6 +65,7 @@ export function useConfig() {
     config,
     loading,
     error,
+    updateConfig,
     getConfigValue,
     validateConfig,
     refreshConfig

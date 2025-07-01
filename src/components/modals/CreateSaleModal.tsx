@@ -1,37 +1,12 @@
 import React, { useState } from 'react';
 import { X, Save, ShoppingCart, Plus, Trash2 } from 'lucide-react';
 
-interface Customer {
-  id: string;
-  name: string;
-  email: string;
-}
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-}
-
-interface Sale {
-  id: string;
-  customerId: string;
-  customer: string;
-  items: SaleItem[];
-  amount: number;
-  status: string;
-  paymentMethod: string;
-  date: string;
-  notes: string;
-  createdAt: string;
-}
-
 interface CreateSaleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (sale: Sale) => void;
-  customers: Customer[];
-  products: Product[];
+  onSave: (sale: any) => void;
+  customers: any[];
+  products: any[];
 }
 
 interface SaleItem {
@@ -74,7 +49,7 @@ export default function CreateSaleModal({ isOpen, onClose, onSave, customers, pr
     setItems(prev => prev.filter((_, i) => i !== index));
   };
 
-  const updateItem = (index: number, field: keyof SaleItem, value: string | number) => {
+  const updateItem = (index: number, field: keyof SaleItem, value: any) => {
     setItems(prev => prev.map((item, i) => {
       if (i === index) {
         const updatedItem = { ...item, [field]: value };
