@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 
 export interface Notification {
   id: string;
@@ -21,15 +21,7 @@ interface NotificationContextType {
   clearAllNotifications: () => void;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
-
-export const useNotifications = () => {
-  const context = useContext(NotificationContext);
-  if (context === undefined) {
-    throw new Error('useNotifications must be used within a NotificationProvider');
-  }
-  return context;
-};
+export const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -39,8 +31,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const savedNotifications = localStorage.getItem('erp-notifications');
     if (savedNotifications) {
       try {
-        const parsed = JSON.parse(savedNotifications);
-        setNotifications(parsed.map((n: any) => ({
+        const parsed: Notification[] = JSON.parse(savedNotifications);
+        setNotifications(parsed.map((n: Notification) => ({
           ...n,
           timestamp: new Date(n.timestamp)
         })));

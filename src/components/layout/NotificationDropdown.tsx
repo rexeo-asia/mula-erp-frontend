@@ -1,7 +1,18 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Bell, X, Check, CheckCheck, Trash2, ExternalLink, Clock, AlertTriangle, CheckCircle, Info } from 'lucide-react';
-import { useNotifications } from '../../contexts/NotificationContext';
+import { useNotifications } from '../../contexts/useNotifications';
 import { useNavigate } from 'react-router-dom';
+
+interface Notification {
+  id: string;
+  read: boolean;
+  actionUrl?: string;
+  type: string;
+  title: string;
+  message: string;
+  timestamp: Date;
+  actionLabel?: string;
+}
 
 export default function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -30,15 +41,7 @@ export default function NotificationDropdown() {
     }
   };
 
-  const getNotificationBgColor = (type: string, read: boolean) => {
-    const opacity = read ? '50' : '100';
-    switch (type) {
-      case 'success': return `bg-green-${opacity} border-green-200`;
-      case 'warning': return `bg-yellow-${opacity} border-yellow-200`;
-      case 'error': return `bg-red-${opacity} border-red-200`;
-      default: return `bg-blue-${opacity} border-blue-200`;
-    }
-  };
+  
 
   const formatTimestamp = (timestamp: Date) => {
     const now = new Date();
@@ -53,7 +56,7 @@ export default function NotificationDropdown() {
     return `${days}d ago`;
   };
 
-  const handleNotificationClick = (notification: any) => {
+  const handleNotificationClick = (notification: Notification) => {
     if (!notification.read) {
       markAsRead(notification.id);
     }

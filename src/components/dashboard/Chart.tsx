@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 export default function Chart() {
   // Mock chart data - in production, this would use a charting library

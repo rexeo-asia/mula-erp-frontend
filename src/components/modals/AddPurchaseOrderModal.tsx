@@ -9,11 +9,27 @@ interface PurchaseItem {
   total: number;
 }
 
+interface Supplier {
+  id: string;
+  name: string;
+}
+
+interface PurchaseOrder {
+  id: string;
+  supplier: string;
+  items: PurchaseItem[];
+  totalAmount: number;
+  status: string;
+  orderDate: string;
+  expectedDelivery: string;
+  notes: string;
+}
+
 interface AddPurchaseOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (purchaseOrder: any) => void;
-  suppliers: any[];
+  onSave: (purchaseOrder: PurchaseOrder) => void;
+  suppliers: Supplier[];
 }
 
 export default function AddPurchaseOrderModal({ isOpen, onClose, onSave, suppliers }: AddPurchaseOrderModalProps) {
@@ -51,7 +67,7 @@ export default function AddPurchaseOrderModal({ isOpen, onClose, onSave, supplie
     setItems(prev => prev.filter((_, i) => i !== index));
   };
 
-  const updateItem = (index: number, field: keyof PurchaseItem, value: any) => {
+  const updateItem = (index: number, field: keyof PurchaseItem, value: string | number) => {
     setItems(prev => prev.map((item, i) => {
       if (i === index) {
         const updatedItem = { ...item, [field]: value };
