@@ -1,12 +1,40 @@
 import React, { useState } from 'react';
 import { X, Save, FileText, Plus, Trash2 } from 'lucide-react';
 
+interface Customer {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+}
+
+interface Invoice {
+  id: string;
+  customerId: string;
+  customer: string;
+  items: InvoiceItem[];
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  amount: number;
+  status: string;
+  dueDate: string;
+  issueDate: string;
+  notes?: string;
+  createdAt: string;
+}
+
 interface CreateInvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (invoice: any) => void;
-  customers: any[];
-  products: any[];
+  onSave: (invoice: Invoice) => void;
+  customers: Customer[];
+  products: Product[];
 }
 
 interface InvoiceItem {
@@ -50,7 +78,7 @@ export default function CreateInvoiceModal({ isOpen, onClose, onSave, customers,
     setItems(prev => prev.filter((_, i) => i !== index));
   };
 
-  const updateItem = (index: number, field: keyof InvoiceItem, value: any) => {
+  const updateItem = (index: number, field: keyof InvoiceItem, value: string | number) => {
     setItems(prev => prev.map((item, i) => {
       if (i === index) {
         const updatedItem = { ...item, [field]: value };

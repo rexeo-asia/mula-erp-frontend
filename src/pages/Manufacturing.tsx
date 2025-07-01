@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Edit, Trash2, Play, Pause, CheckCircle, Clock, Package, Users, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Play, Pause, CheckCircle, Clock, Package, Users, AlertTriangle } from 'lucide-react';
 import AddBOMModal from '../components/modals/AddBOMModal';
 import AddWorkOrderModal from '../components/modals/AddWorkOrderModal';
 
@@ -175,7 +175,7 @@ export default function Manufacturing() {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'bom' | 'workorders' | 'production')}
               className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'

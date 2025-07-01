@@ -26,7 +26,7 @@ export default function CustomerDisplay() {
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
-  const [error, setError] = useState<string>('');
+  const [error] = useState<string>('');
 
   const sessionHash = searchParams.get('hash');
 
@@ -72,7 +72,7 @@ export default function CustomerDisplay() {
           setError('No active session found for this hash. Please check the hash or select an active session.');
           setSessionData(null);
         }
-      } catch (e) {
+      } catch (error) {
         setError('Failed to parse session data. The data may be corrupted.');
         setSessionData(null);
       }

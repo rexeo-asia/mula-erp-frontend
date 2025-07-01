@@ -127,7 +127,7 @@ export default function HumanResources() {
     }
   ]);
 
-  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([
+  const [leaveRequests] = useState<LeaveRequest[]>([
     {
       id: 'LR001',
       employeeId: 'EMP001',
@@ -155,7 +155,7 @@ export default function HumanResources() {
     }
   ]);
 
-  const [payroll, setPayroll] = useState<Payroll[]>([
+  const [payroll] = useState<Payroll[]>([
     {
       id: 'PAY001',
       employeeId: 'EMP001',
@@ -289,7 +289,7 @@ export default function HumanResources() {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'employees' | 'attendance' | 'leaves' | 'payroll')}
               className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'

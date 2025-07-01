@@ -1,10 +1,27 @@
 import React, { useState } from 'react';
 import { X, Save, User } from 'lucide-react';
 
+interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  company?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  notes?: string;
+  totalOrders: number;
+  totalSpent: number;
+  createdAt: string;
+}
+
 interface AddCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (customer: any) => void;
+  onSave: (customer: Customer) => void;
 }
 
 export default function AddCustomerModal({ isOpen, onClose, onSave }: AddCustomerModalProps) {

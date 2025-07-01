@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, Users, Package, FileText, DollarSign } from 'lucide-react';
+import { Users, Package, FileText, DollarSign } from 'lucide-react';
 import StatCard from '../components/dashboard/StatCard';
 import Chart from '../components/dashboard/Chart';
 import { useConfig } from '../hooks/useConfig';

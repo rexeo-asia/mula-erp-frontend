@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Edit, Trash2, Download, TrendingUp, TrendingDown, DollarSign, CreditCard, Banknote, FileText } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Download, TrendingUp, TrendingDown, DollarSign, CreditCard, Banknote, FileText } from 'lucide-react';
 
 interface Transaction {
   id: string;
@@ -91,7 +91,7 @@ export default function Accounting() {
     { id: 'EX002', name: 'Marketing Expenses', type: 'expense', balance: 2500, isActive: true }
   ]);
 
-  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([
+  const [journalEntries] = useState<JournalEntry[]>([
     {
       id: 'JE001',
       date: '2024-01-15',
@@ -213,7 +213,7 @@ export default function Accounting() {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'transactions' | 'accounts' | 'journal' | 'reports')}
               className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'

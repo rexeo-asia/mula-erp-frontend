@@ -49,8 +49,34 @@ export const useNotificationSystem = () => {
     return () => clearInterval(interval);
   }, [addNotification]);
 
-  // Function to trigger specific business notifications
-  const triggerBusinessNotification = (type: string, data: any) => {
+  interface LowStockNotificationData {
+  productName: string;
+  quantity: number;
+}
+
+interface NewSaleNotificationData {
+  orderId: string;
+  customerName: string;
+}
+
+interface InvoiceOverdueNotificationData {
+  invoiceId: string;
+  days: number;
+}
+
+interface PaymentReceivedNotificationData {
+  amount: number;
+  invoiceId: string;
+}
+
+type BusinessNotificationData = 
+  | LowStockNotificationData
+  | NewSaleNotificationData
+  | InvoiceOverdueNotificationData
+  | PaymentReceivedNotificationData;
+
+// Function to trigger specific business notifications
+const triggerBusinessNotification = (type: string, data: BusinessNotificationData) => {
     switch (type) {
       case 'low_stock':
         addNotification({

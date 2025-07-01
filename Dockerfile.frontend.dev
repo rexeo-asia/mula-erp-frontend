@@ -5,6 +5,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package files
+#COPY package*.json ./
+
 # Copy all source code
 COPY . .
 
@@ -14,5 +16,3 @@ RUN npm install
 # Build the application
 ARG VITE_BASE_URL
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
-
-

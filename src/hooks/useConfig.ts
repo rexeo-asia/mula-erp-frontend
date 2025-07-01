@@ -9,23 +9,22 @@ export function useConfig() {
   const configService = ConfigService.getInstance();
 
   useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await configService.getAllConfigs();
+        setConfig(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load configuration');
+      } finally {
+        setLoading(false);
+      }
+    };
     loadConfig();
-  }, []);
+  }, [configService]);
 
-  const loadConfig = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await configService.getAllConfigs();
-      setConfig(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load configuration');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateConfig = async (key: string, value: any): Promise<boolean> => {
+  const updateConfig = async (key: string, value: unknown): Promise<boolean> => {
     try {
       const success = await configService.setConfig(key, value);
       if (success && config) {
@@ -38,7 +37,7 @@ export function useConfig() {
     }
   };
 
-  const getConfigValue = async (key: string): Promise<any> => {
+  const getConfigValue = async (key: string): Promise<unknown> => {
     try {
       return await configService.getConfig(key);
     } catch (err) {

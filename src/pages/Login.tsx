@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Monitor, Lock, Mail, Image, Eye, EyeOff, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConfig } from '../hooks/useConfig';
@@ -44,7 +44,7 @@ export default function Login() {
     try {
       await loadPreloginData(email);
       setShowImageSelection(true);
-    } catch (error) {
+    } catch (err: unknown) {
       setError('Failed to load security data. You can still proceed with password login.');
       setCasPreloginFailed(true);
     } finally {
@@ -67,7 +67,7 @@ export default function Login() {
         setSelectedImageId('');
         setImageVerified(false);
       }
-    } catch (error) {
+    } catch (err: unknown) {
       setError('Failed to verify security image. Please try again.');
       setSelectedImageId('');
       setImageVerified(false);
@@ -86,7 +86,7 @@ export default function Login() {
       if (!success) {
         setError('Invalid credentials. For demo access, use demo@demo.net / demo');
       }
-    } catch (error) {
+    } catch (err: unknown) {
       setError('Login failed. Please try again.');
     } finally {
       setLoading(false);
@@ -107,7 +107,7 @@ export default function Login() {
       } else {
         setError('Password reset failed. Please try again.');
       }
-    } catch (error) {
+    } catch (err: unknown) {
       setError('Password reset failed. Please try again.');
     } finally {
       setLoading(false);

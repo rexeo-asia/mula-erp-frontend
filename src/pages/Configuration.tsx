@@ -78,7 +78,7 @@ export default function Configuration() {
     }
   };
 
-  const handleChange = (key: keyof ConfigData, value: any) => {
+  const handleChange = (key: keyof ConfigData, value: string | number | boolean) => {
     if (!config) return;
 
     const newConfig = { ...config, [key]: value };

@@ -81,7 +81,7 @@ export default function Purchasing() {
     }
   ]);
 
-  const [suppliers, setSuppliers] = useState<Supplier[]>([
+  const [suppliers] = useState<Supplier[]>([
     {
       id: 'S001',
       name: 'Tech Components Ltd',
@@ -108,7 +108,7 @@ export default function Purchasing() {
     }
   ]);
 
-  const [rfqs, setRfqs] = useState<RFQ[]>([
+  const [rfqs] = useState<RFQ[]>([
     {
       id: 'RFQ001',
       title: 'Computer Hardware Components',
@@ -225,7 +225,7 @@ export default function Purchasing() {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'orders' | 'suppliers' | 'rfq')}
               className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ShoppingCart, Plus, Minus, Trash2, CreditCard, Banknote, Receipt, 
-  Monitor, ExternalLink, Copy, Check, Calendar, DollarSign, Clock,
-  User, Settings, LogOut, Play, Square, BarChart3, Calculator,
-  Wallet, TrendingUp, Package, AlertCircle, X
+  Monitor, Copy, Check, Calendar, DollarSign, Play, Square, BarChart3, 
+  Wallet, Package, AlertCircle, X
 } from 'lucide-react';
 
 interface Product {
@@ -47,6 +46,24 @@ interface CashMovement {
   amount: number;
   reason: string;
   timestamp: string;
+}
+
+interface SaleItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+interface Sale {
+  id: string;
+  customer: string;
+  amount: number;
+  status: 'pending' | 'completed' | 'cancelled';
+  date: string;
+  paymentMethod?: string;
+  items?: SaleItem[];
+  notes?: string;
 }
 
 export default function POS() {
@@ -268,7 +285,7 @@ export default function POS() {
       await navigator.clipboard.writeText(sessionHash);
       setHashCopied(true);
       setTimeout(() => setHashCopied(false), 2000);
-    } catch (err) {
+    } catch (error: unknown) {
       const textArea = document.createElement('textarea');
       textArea.value = sessionHash;
       document.body.appendChild(textArea);
@@ -297,6 +314,27 @@ export default function POS() {
 
     alert(`Processing ${method} payment for ${total.toFixed(2)}`);
     
+    const newSale: Sale = {
+      id: `SALE-${Date.now()}`,
+      customer: 'Walk-in Customer', // Or a selected customer from POS if implemented
+      amount: total,
+      status: 'completed',
+      date: new Date().toISOString().split('T')[0],
+      paymentMethod: method.toLowerCase(),
+      items: cart.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity
+      })),
+      notes: `POS Sale from session ${currentSession.id}`
+    };
+
+    const existingSales = JSON.parse(localStorage.getItem('mula-erp-completed-sales') || '[]');
+    const updatedSales = [...existingSales, newSale];
+    localStorage.setItem('mula-erp-completed-sales', JSON.stringify(updatedSales));
+    window.dispatchEvent(new Event('storage')); // Notify other components
+
     setTimeout(() => {
       clearCart();
       // Also clear the cart in the customer display

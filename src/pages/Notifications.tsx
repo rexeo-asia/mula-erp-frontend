@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Search, Filter, Check, CheckCheck, Trash2, ExternalLink, Clock, AlertTriangle, CheckCircle, Info, Archive } from 'lucide-react';
+import { Bell, Search, Check, CheckCheck, Trash2, ExternalLink, Clock, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -31,21 +31,13 @@ export default function Notifications() {
     }
   };
 
-  const getNotificationBgColor = (type: string, read: boolean) => {
-    const baseColor = read ? 'bg-gray-50' : 'bg-white';
-    const borderColor = read ? 'border-gray-200' : 
-      type === 'success' ? 'border-green-200' :
-      type === 'warning' ? 'border-yellow-200' :
-      type === 'error' ? 'border-red-200' : 'border-blue-200';
-    
-    return `${baseColor} ${borderColor}`;
-  };
+  
 
   const formatTimestamp = (timestamp: Date) => {
     return timestamp.toLocaleString();
   };
 
-  const handleNotificationClick = (notification: any) => {
+  const handleNotificationClick = (notification: Notification) => {
     if (!notification.read) {
       markAsRead(notification.id);
     }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Edit, Trash2, Eye, Download, Send, DollarSign, FileText, Zap, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, Download, Send, DollarSign, FileText, Zap, CheckCircle, AlertCircle } from 'lucide-react';
 import CreateInvoiceModal from '../components/modals/CreateInvoiceModal';
 import LhdnService from '../services/lhdnService';
 
@@ -10,7 +10,7 @@ interface Invoice {
   status: 'draft' | 'sent' | 'paid' | 'overdue';
   dueDate: string;
   issueDate: string;
-  items?: any[];
+  items?: InvoiceItem[];
   notes?: string;
   lhdnStatus?: 'pending' | 'submitted' | 'validated' | 'rejected' | 'cancelled';
   lhdnUuid?: string;
@@ -154,7 +154,7 @@ export default function Invoicing() {
         setInvoices(prev => prev.map(inv => 
           inv.id === invoice.id ? {
             ...inv,
-            lhdnStatus: result.status as any
+            lhdnStatus: result.status as Invoice['lhdnStatus']
           } : inv
         ));
         setLhdnMessage(`✅ LHDN status for ${invoice.id}: ${result.status}`);

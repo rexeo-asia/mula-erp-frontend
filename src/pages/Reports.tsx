@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { BarChart, PieChart, TrendingUp, Download, Calendar, Filter, FileText, DollarSign, Users, Package } from 'lucide-react';
+import { BarChart, TrendingUp, Download, Calendar, Filter, FileText, DollarSign, Users, Package } from 'lucide-react';
 
 interface ReportData {
   period: string;

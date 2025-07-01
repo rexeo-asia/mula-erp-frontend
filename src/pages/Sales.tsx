@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
-import { Plus, Search, Filter, Edit, Trash2, Eye, Download } from 'lucide-react';
+
+
+import React, { useState, useEffect } from 'react';
+import { Plus, Search, Edit, Trash2, Eye, Download } from 'lucide-react';
 import CreateSaleModal from '../components/modals/CreateSaleModal';
+
+interface SaleItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
 
 interface Sale {
   id: string;
@@ -9,17 +18,36 @@ interface Sale {
   status: 'pending' | 'completed' | 'cancelled';
   date: string;
   paymentMethod?: string;
-  items?: any[];
+  items?: SaleItem[];
   notes?: string;
 }
 
+const loadSalesFromLocalStorage = (): Sale[] => {
+  try {
+    const savedSales = localStorage.getItem('mula-erp-completed-sales');
+    return savedSales ? JSON.parse(savedSales) : [];
+  } catch (error) {
+    console.error("Error loading sales from localStorage:", error);
+    return [];
+  }
+};
+
 export default function Sales() {
-  const [sales, setSales] = useState<Sale[]>([
-    { id: 'S001', customer: 'John Doe', amount: 1250.00, status: 'completed', date: '2024-01-15', paymentMethod: 'card' },
-    { id: 'S002', customer: 'Jane Smith', amount: 890.50, status: 'pending', date: '2024-01-14', paymentMethod: 'cash' },
-    { id: 'S003', customer: 'Bob Johnson', amount: 2100.75, status: 'completed', date: '2024-01-13', paymentMethod: 'card' },
-    { id: 'S004', customer: 'Alice Brown', amount: 675.25, status: 'cancelled', date: '2024-01-12', paymentMethod: 'cash' }
-  ]);
+  const [sales, setSales] = useState<Sale[]>(loadSalesFromLocalStorage());
+
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'mula-erp-completed-sales') {
+        setSales(loadSalesFromLocalStorage());
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   const [customers] = useState([
     { id: 'C001', name: 'John Doe', email: 'john@example.com' },

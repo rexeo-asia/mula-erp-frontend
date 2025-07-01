@@ -30,15 +30,7 @@ export default function NotificationDropdown() {
     }
   };
 
-  const getNotificationBgColor = (type: string, read: boolean) => {
-    const opacity = read ? '50' : '100';
-    switch (type) {
-      case 'success': return `bg-green-${opacity} border-green-200`;
-      case 'warning': return `bg-yellow-${opacity} border-yellow-200`;
-      case 'error': return `bg-red-${opacity} border-red-200`;
-      default: return `bg-blue-${opacity} border-blue-200`;
-    }
-  };
+  
 
   const formatTimestamp = (timestamp: Date) => {
     const now = new Date();
@@ -53,7 +45,18 @@ export default function NotificationDropdown() {
     return `${days}d ago`;
   };
 
-  const handleNotificationClick = (notification: any) => {
+  interface AppNotification {
+    id: string;
+    title: string;
+    message: string;
+    type: 'success' | 'warning' | 'error' | 'info';
+    read: boolean;
+    timestamp: Date;
+    actionUrl?: string;
+    actionLabel?: string;
+  }
+
+  const handleNotificationClick = (notification: AppNotification) => {
     if (!notification.read) {
       markAsRead(notification.id);
     }

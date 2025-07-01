@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Edit, Trash2, Eye, Phone, Mail, Calendar, DollarSign, TrendingUp, Users, Target, Star } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, Phone, Mail, Calendar, DollarSign, TrendingUp, Users, Target, Star } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -61,7 +61,7 @@ export default function CRM() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
-  const [leads, setLeads] = useState<Lead[]>([
+  const [leads] = useState<Lead[]>([
     {
       id: 'L001',
       name: 'Alice Cooper',
@@ -92,7 +92,7 @@ export default function CRM() {
     }
   ]);
 
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([
+  const [opportunities] = useState<Opportunity[]>([
     {
       id: 'O001',
       name: 'Enterprise Software License',
@@ -119,7 +119,7 @@ export default function CRM() {
     }
   ]);
 
-  const [activities, setActivities] = useState<Activity[]>([
+  const [activities] = useState<Activity[]>([
     {
       id: 'A001',
       type: 'call',
@@ -146,7 +146,7 @@ export default function CRM() {
     }
   ]);
 
-  const [campaigns, setCampaigns] = useState<Campaign[]>([
+  const [campaigns] = useState<Campaign[]>([
     {
       id: 'C001',
       name: 'Q1 Product Launch',
@@ -306,7 +306,7 @@ export default function CRM() {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'leads' | 'opportunities' | 'activities' | 'campaigns')}
               className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Edit, Trash2, Package, AlertTriangle, Download, Upload } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, AlertTriangle, Download, Upload } from 'lucide-react';
 import AddItemModal from '../components/modals/AddItemModal';
 
 interface InventoryItem {
@@ -29,7 +29,7 @@ export default function Inventory() {
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  
 
   const categories = [...new Set(inventory.map(item => item.category))];
 
