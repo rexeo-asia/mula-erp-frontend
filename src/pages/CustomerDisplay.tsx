@@ -26,7 +26,7 @@ export default function CustomerDisplay() {
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
-  const [error] = useState<string>('');
+  const [error, setError] = useState<string>('');
 
   const sessionHash = searchParams.get('hash');
 
@@ -69,8 +69,17 @@ export default function CustomerDisplay() {
           setLastUpdated(new Date(parsedData.timestamp).toLocaleTimeString());
           setError('');
         } else {
-          setError('No active session found for this hash. Please check the hash or select an active session.');
-          setSessionData(null);
+          // Check if this is a valid hash but no data yet
+          const sessionDetails = localStorage.getItem(`pos-session-details-${sessionHash}`);
+          if (sessionDetails) {
+            // Session exists but no cart data yet - this is normal
+            setSessionData({ hash: sessionHash, cart: [], timestamp: Date.now() });
+            setLastUpdated(new Date().toLocaleTimeString());
+            setError('');
+          } else {
+            setError('No active session found for this hash. Please check the hash or select an active session.');
+            setSessionData(null);
+          }
         }
       } catch (error) {
         setError('Failed to parse session data. The data may be corrupted.');

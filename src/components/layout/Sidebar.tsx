@@ -83,26 +83,6 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Module Status Indicator */}
-      {!collapsed && config && (
-        <div className="absolute bottom-4 left-4 right-4">
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-xs text-gray-600 mb-2">Active Modules</p>
-            <div className="flex flex-wrap gap-1">
-              {enabledMenuItems.slice(0, 6).map((item, index) => (
-                <div
-                  key={index}
-                  className="w-2 h-2 bg-green-400 rounded-full"
-                  title={item.label}
-                />
-              ))}
-              {enabledMenuItems.length > 6 && (
-                <span className="text-xs text-gray-500">+{enabledMenuItems.length - 6}</span>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
