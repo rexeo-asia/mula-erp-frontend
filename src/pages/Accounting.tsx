@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Edit, Trash2, Download, TrendingUp, TrendingDown, DollarSign, CreditCard, Banknote, FileText, Calculator, Users, Building, BookOpen, BarChart3, PieChart, Receipt, Archive, Settings, Filter, Calendar, Globe, Lock, CheckCircle, AlertCircle, Clock, Printer, Mail } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Download, TrendingUp, TrendingDown, DollarSign, CreditCard, Banknote, FileText, Calculator, Users, Building, BookOpen, BarChart3, PieChart, Receipt, Archive, Settings, Filter, Calendar, Globe, Lock, CheckCircle, AlertCircle, Clock, Printer, Mail, X } from 'lucide-react';
 
 interface Transaction {
   id: string;
@@ -240,6 +240,8 @@ export default function Accounting() {
   const [dateRange, setDateRange] = useState({ from: '2024-01-01', to: '2024-12-31' });
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [showMultiCurrency, setShowMultiCurrency] = useState(false);
+  const [showNewEntryForm, setShowNewEntryForm] = useState(false);
+  const [newEntryType, setNewEntryType] = useState<'transaction' | 'journal' | 'account'>('transaction');
 
   // Sample data based on Odoo accounting structure
   const [transactions, setTransactions] = useState<Transaction[]>([
@@ -805,16 +807,173 @@ export default function Accounting() {
     return `$${amount.toLocaleString()}`;
   };
 
+  // Export functionality
+  const handleExport = () => {
+    let dataToExport: any[] = [];
+    let filename = '';
+    
+    switch (activeTab) {
+      case 'transactions':
+        dataToExport = transactions;
+        filename = 'transactions-export.csv';
+        break;
+      case 'accounts':
+        dataToExport = accounts;
+        filename = 'chart-of-accounts-export.csv';
+        break;
+      case 'journal':
+        dataToExport = journalEntries;
+        filename = 'journal-entries-export.csv';
+        break;
+      case 'reconciliation':
+        dataToExport = bankReconciliations;
+        filename = 'bank-reconciliation-export.csv';
+        break;
+      case 'taxes':
+        dataToExport = taxConfigurations;
+        filename = 'tax-configurations-export.csv';
+        break;
+      case 'analytics':
+        dataToExport = analyticAccounts;
+        filename = 'analytic-accounts-export.csv';
+        break;
+      default:
+        // Export financial summary for dashboard
+        dataToExport = [
+          { category: 'Total Assets', amount: totalAssets },
+          { category: 'Total Liabilities', amount: totalLiabilities },
+          { category: 'Total Equity', amount: totalEquity },
+          { category: 'Total Income', amount: totalIncome },
+          { category: 'Total Expenses', amount: totalExpenses },
+          { category: 'Net Income', amount: netIncome }
+        ];
+        filename = 'financial-summary-export.csv';
+    }
+
+    if (dataToExport.length === 0) {
+      alert('No data available to export for the current tab.');
+      return;
+    }
+
+    // Convert to CSV
+    const headers = Object.keys(dataToExport[0]).join(',');
+    const csvContent = [
+      headers,
+      ...dataToExport.map(row => 
+        Object.values(row).map(value => 
+          typeof value === 'string' && value.includes(',') 
+            ? `"${value}"` 
+            : value
+        ).join(',')
+      )
+    ].join('\n');
+
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  // New Entry Form handlers
+  const handleNewEntry = () => {
+    setShowNewEntryForm(true);
+    // Set the entry type based on current tab
+    switch (activeTab) {
+      case 'transactions':
+        setNewEntryType('transaction');
+        break;
+      case 'journal':
+        setNewEntryType('journal');
+        break;
+      case 'accounts':
+        setNewEntryType('account');
+        break;
+      default:
+        setNewEntryType('transaction');
+    }
+  };
+
+  const handleSubmitNewEntry = (formData: any) => {
+    // Generate new ID
+    const newId = `${newEntryType.toUpperCase()}_${Date.now()}`;
+    
+    switch (newEntryType) {
+      case 'transaction':
+        const newTransaction: Transaction = {
+          id: newId,
+          date: formData.date || new Date().toISOString().split('T')[0],
+          description: formData.description,
+          account: formData.account,
+          debit: parseFloat(formData.debit) || 0,
+          credit: parseFloat(formData.credit) || 0,
+          balance: (parseFloat(formData.debit) || 0) - (parseFloat(formData.credit) || 0),
+          reference: formData.reference || `REF-${Date.now()}`,
+          type: formData.type || 'transfer',
+          partner: formData.partner,
+          currency: formData.currency || selectedCurrency
+        };
+        setTransactions([...transactions, newTransaction]);
+        break;
+        
+      case 'account':
+        const newAccount: Account = {
+          id: newId,
+          code: formData.code,
+          name: formData.name,
+          type: formData.type,
+          balance: parseFloat(formData.balance) || 0,
+          isActive: true,
+          reconcile: formData.reconcile || false,
+          currency: formData.currency || selectedCurrency
+        };
+        setAccounts([...accounts, newAccount]);
+        break;
+        
+      case 'journal':
+        const newJournalEntry: JournalEntry = {
+          id: newId,
+          date: formData.date || new Date().toISOString().split('T')[0],
+          reference: formData.reference || `JE-${Date.now()}`,
+          description: formData.description,
+          journal: formData.journal || 'General Journal',
+          entries: formData.entries || [],
+          totalDebit: parseFloat(formData.totalDebit) || 0,
+          totalCredit: parseFloat(formData.totalCredit) || 0,
+          status: 'draft',
+          currency: formData.currency || selectedCurrency
+        };
+        setJournalEntries([...journalEntries, newJournalEntry]);
+        break;
+    }
+    
+    setShowNewEntryForm(false);
+    alert(`New ${newEntryType} created successfully!`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Accounting</h1>
         <div className="flex space-x-3">
-          <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2">
+          <button 
+            onClick={handleExport}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2"
+          >
             <Download size={20} />
             <span>Export</span>
           </button>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2">
+          <button 
+            onClick={handleNewEntry}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+          >
             <Plus size={20} />
             <span>New Entry</span>
           </button>
@@ -1769,6 +1928,450 @@ export default function Accounting() {
           </div>
         </div>
       )}
+
+      {/* New Entry Form Modal */}
+      {showNewEntryForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Create New {newEntryType.charAt(0).toUpperCase() + newEntryType.slice(1)}
+                </h3>
+                <button 
+                  onClick={() => setShowNewEntryForm(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+            
+            <NewEntryForm 
+              entryType={newEntryType}
+              accounts={accounts}
+              journals={journals}
+              currencies={currencies}
+              selectedCurrency={selectedCurrency}
+              onSubmit={handleSubmitNewEntry}
+              onCancel={() => setShowNewEntryForm(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+// New Entry Form Component
+interface NewEntryFormProps {
+  entryType: 'transaction' | 'journal' | 'account';
+  accounts: Account[];
+  journals: Journal[];
+  currencies: MultiCurrency[];
+  selectedCurrency: string;
+  onSubmit: (formData: any) => void;
+  onCancel: () => void;
+}
+
+function NewEntryForm({ entryType, accounts, journals, currencies, selectedCurrency, onSubmit, onCancel }: NewEntryFormProps) {
+  const [formData, setFormData] = useState<any>({});
+  const [journalEntries, setJournalEntries] = useState<any[]>([{ account: '', debit: 0, credit: 0, name: '' }]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (entryType === 'journal') {
+      // Calculate totals for journal entries
+      const totalDebit = journalEntries.reduce((sum, entry) => sum + (parseFloat(entry.debit) || 0), 0);
+      const totalCredit = journalEntries.reduce((sum, entry) => sum + (parseFloat(entry.credit) || 0), 0);
+      
+      if (Math.abs(totalDebit - totalCredit) > 0.01) {
+        alert('Total Debit and Credit amounts must be equal for journal entries!');
+        return;
+      }
+      
+      formData.entries = journalEntries;
+      formData.totalDebit = totalDebit;
+      formData.totalCredit = totalCredit;
+    }
+    
+    onSubmit(formData);
+  };
+
+  const addJournalEntry = () => {
+    setJournalEntries([...journalEntries, { account: '', debit: 0, credit: 0, name: '' }]);
+  };
+
+  const removeJournalEntry = (index: number) => {
+    if (journalEntries.length > 1) {
+      setJournalEntries(journalEntries.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateJournalEntry = (index: number, field: string, value: any) => {
+    const updated = [...journalEntries];
+    updated[index] = { ...updated[index], [field]: value };
+    
+    // Auto-fill account name when account is selected
+    if (field === 'account') {
+      const account = accounts.find(a => a.id === value);
+      updated[index].name = account?.name || '';
+      updated[index].accountCode = account?.code || '';
+    }
+    
+    setJournalEntries(updated);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="p-6 space-y-4">
+      {/* Common Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+          <input
+            type="date"
+            value={formData.date || new Date().toISOString().split('T')[0]}
+            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            required
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+          <select
+            value={formData.currency || selectedCurrency}
+            onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            {currencies.map((currency) => (
+              <option key={currency.id} value={currency.id}>
+                {currency.name} ({currency.symbol})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+        <input
+          type="text"
+          value={formData.description || ''}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Enter description..."
+          required
+        />
+      </div>
+
+      {/* Transaction-specific fields */}
+      {entryType === 'transaction' && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Account</label>
+              <select
+                value={formData.account || ''}
+                onChange={(e) => setFormData({ ...formData, account: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Select an account...</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={`${account.code} - ${account.name}`}>
+                    {account.code} - {account.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+              <select
+                value={formData.type || 'transfer'}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+                <option value="transfer">Transfer</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Debit Amount</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.debit || ''}
+                onChange={(e) => setFormData({ ...formData, debit: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0.00"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Credit Amount</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.credit || ''}
+                onChange={(e) => setFormData({ ...formData, credit: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0.00"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Partner (Optional)</label>
+              <input
+                type="text"
+                value={formData.partner || ''}
+                onChange={(e) => setFormData({ ...formData, partner: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Partner name..."
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Account-specific fields */}
+      {entryType === 'account' && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Account Code</label>
+              <input
+                type="text"
+                value={formData.code || ''}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Account code..."
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Account Name</label>
+              <input
+                type="text"
+                value={formData.name || ''}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Account name..."
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+              <select
+                value={formData.type || ''}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Select account type...</option>
+                <optgroup label="Assets">
+                  <option value="asset_receivable">Receivable</option>
+                  <option value="asset_payable">Payable</option>
+                  <option value="asset_cash">Cash</option>
+                  <option value="asset_current">Current Assets</option>
+                  <option value="asset_non_current">Non-Current Assets</option>
+                  <option value="asset_fixed">Fixed Assets</option>
+                </optgroup>
+                <optgroup label="Liabilities">
+                  <option value="liability_payable">Payable</option>
+                  <option value="liability_current">Current Liabilities</option>
+                  <option value="liability_non_current">Non-Current Liabilities</option>
+                </optgroup>
+                <optgroup label="Equity">
+                  <option value="equity">Equity</option>
+                  <option value="equity_unaffected">Unaffected Earnings</option>
+                </optgroup>
+                <optgroup label="Income">
+                  <option value="income">Income</option>
+                  <option value="income_other">Other Income</option>
+                </optgroup>
+                <optgroup label="Expenses">
+                  <option value="expense">Expense</option>
+                  <option value="expense_depreciation">Depreciation</option>
+                  <option value="expense_direct_cost">Direct Cost</option>
+                </optgroup>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Initial Balance</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.balance || ''}
+                onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.reconcile || false}
+                onChange={(e) => setFormData({ ...formData, reconcile: e.target.checked })}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="ml-2 text-sm text-gray-700">Allow Reconciliation</span>
+            </label>
+          </div>
+        </>
+      )}
+
+      {/* Journal-specific fields */}
+      {entryType === 'journal' && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Journal</label>
+              <select
+                value={formData.journal || ''}
+                onChange={(e) => setFormData({ ...formData, journal: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select journal...</option>
+                {journals.map((journal) => (
+                  <option key={journal.id} value={journal.name}>
+                    {journal.name} ({journal.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Reference</label>
+              <input
+                type="text"
+                value={formData.reference || ''}
+                onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Reference number..."
+              />
+            </div>
+          </div>
+          
+          {/* Journal Entry Lines */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-gray-700">Journal Entry Lines</label>
+              <button
+                type="button"
+                onClick={addJournalEntry}
+                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+              >
+                Add Line
+              </button>
+            </div>
+            
+            <div className="space-y-3 max-h-60 overflow-y-auto">
+              {journalEntries.map((entry, index) => (
+                <div key={index} className="grid grid-cols-12 gap-2 items-center p-3 border rounded">
+                  <div className="col-span-4">
+                    <select
+                      value={entry.account || ''}
+                      onChange={(e) => updateJournalEntry(index, 'account', e.target.value)}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Select account...</option>
+                      {accounts.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.code} - {account.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="col-span-3">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={entry.debit || ''}
+                      onChange={(e) => updateJournalEntry(index, 'debit', e.target.value)}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                      placeholder="Debit"
+                    />
+                  </div>
+                  
+                  <div className="col-span-3">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={entry.credit || ''}
+                      onChange={(e) => updateJournalEntry(index, 'credit', e.target.value)}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                      placeholder="Credit"
+                    />
+                  </div>
+                  
+                  <div className="col-span-2">
+                    <button
+                      type="button"
+                      onClick={() => removeJournalEntry(index)}
+                      className="text-red-600 hover:text-red-800 p-1"
+                      disabled={journalEntries.length === 1}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Totals Display */}
+            <div className="mt-4 p-3 bg-gray-50 rounded">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Total Debit: </span>
+                  <span className="font-medium">
+                    ${journalEntries.reduce((sum, entry) => sum + (parseFloat(entry.debit) || 0), 0).toFixed(2)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Total Credit: </span>
+                  <span className="font-medium">
+                    ${journalEntries.reduce((sum, entry) => sum + (parseFloat(entry.credit) || 0), 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Form Actions */}
+      <div className="flex items-center justify-end space-x-3 pt-4 border-t">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Create {entryType.charAt(0).toUpperCase() + entryType.slice(1)}
+        </button>
+      </div>
+    </form>
   );
 }
