@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Edit, Trash2, Eye, Download, Users, Calendar, DollarSign, Clock, Award, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Download, Users, Calendar, DollarSign, Clock, Award, BookOpen, TrendingUp, AlertTriangle } from 'lucide-react';
 
 interface Employee {
   id: string;
@@ -64,7 +64,7 @@ export default function HumanResources() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
-  const [employees, setEmployees] = useState<Employee[]>([
+  const [employees] = useState<Employee[]>([
     {
       id: 'EMP001',
       name: 'John Smith',
@@ -103,7 +103,7 @@ export default function HumanResources() {
     }
   ]);
 
-  const [attendance, setAttendance] = useState<Attendance[]>([
+  const [attendance] = useState<AttendanceRecord[]>([
     {
       id: 'ATT001',
       employeeId: 'EMP001',

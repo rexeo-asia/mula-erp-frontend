@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Edit, Trash2, Download, TrendingUp, TrendingDown, DollarSign, CreditCard, Banknote, FileText, Calculator, Users, Building, BookOpen, BarChart3, PieChart, Receipt, Archive, Settings, Filter, Calendar, Globe, Lock, CheckCircle, AlertCircle, Clock, Printer, Mail, X } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Download, TrendingUp, TrendingDown, DollarSign, CreditCard, Banknote, FileText, Calculator, Users, Building, BookOpen, BarChart3, PieChart, Receipt, Settings, X } from 'lucide-react';
 
 interface Transaction {
   id: string;
@@ -76,40 +76,40 @@ interface Journal {
   company?: string;
 }
 
-interface PaymentTerm {
-  id: string;
-  name: string;
-  note?: string;
-  active: boolean;
-  company?: string;
-  terms: Array<{
-    value: 'balance' | 'percent' | 'fixed';
-    valueAmount?: number;
-    days: number;
-    dayOfMonth?: number;
-  }>;
-}
+// interface PaymentTerm {
+//   id: string;
+//   name: string;
+//   note?: string;
+//   active: boolean;
+//   company?: string;
+//   terms: Array<{
+//     value: 'balance' | 'percent' | 'fixed';
+//     valueAmount?: number;
+//     days: number;
+//     dayOfMonth?: number;
+//   }>;
+// }
 
-interface FiscalPosition {
-  id: string;
-  name: string;
-  note?: string;
-  active: boolean;
-  autoApply: boolean;
-  vatRequired: boolean;
-  country?: string;
-  state?: string;
-  zipFrom?: string;
-  zipTo?: string;
-  accountMapping: Array<{
-    accountSrc: string;
-    accountDest: string;
-  }>;
-  taxMapping: Array<{
-    taxSrc: string;
-    taxDest: string;
-  }>;
-}
+// interface FiscalPosition {
+//   id: string;
+//   name: string;
+//   note?: string;
+//   active: boolean;
+//   autoApply: boolean;
+//   vatRequired: boolean;
+//   country?: string;
+//   state?: string;
+//   zipFrom?: string;
+//   zipTo?: string;
+//   accountMapping: Array<{
+//     accountSrc: string;
+//     accountDest: string;
+//   }>;
+//   taxMapping: Array<{
+//     taxSrc: string;
+//     taxDest: string;
+//   }>;
+// }
 
 interface TaxConfiguration {
   id: string;
@@ -183,13 +183,13 @@ interface Budget {
   }>;
 }
 
-interface CashBasisTax {
-  id: string;
-  name: string;
-  transitionAccount: string;
-  active: boolean;
-  exigibility: 'on_invoice' | 'on_payment';
-}
+// interface CashBasisTax {
+//   id: string;
+//   name: string;
+//   transitionAccount: string;
+//   active: boolean;
+//   exigibility: 'on_invoice' | 'on_payment';
+// }
 
 interface FixedAsset {
   id: string;
@@ -221,17 +221,6 @@ interface MultiCurrency {
   }>;
 }
 
-interface FollowUpLevel {
-  id: string;
-  name: string;
-  delay: number;
-  description?: string;
-  printLetter: boolean;
-  sendEmail: boolean;
-  sendSMS: boolean;
-  manualAction: boolean;
-  active: boolean;
-}
 
 export default function Accounting() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'transactions' | 'accounts' | 'journal' | 'reconciliation' | 'reports' | 'taxes' | 'analytics' | 'settings'>('dashboard');
@@ -243,7 +232,7 @@ export default function Accounting() {
   const [showNewEntryForm, setShowNewEntryForm] = useState(false);
   const [newEntryType, setNewEntryType] = useState<'transaction' | 'journal' | 'account'>('transaction');
   const [showEditForm, setShowEditForm] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingItem, setEditingItem] = useState<Transaction | Account | JournalEntry | null>(null);
   const [editingType, setEditingType] = useState<'transaction' | 'account' | 'journal' | 'tax' | 'analytic'>('transaction');
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportType, setReportType] = useState<'balance' | 'income' | 'cashflow' | 'general' | 'trial' | 'aged_receivables' | 'aged_payables' | 'tax' | 'partner' | 'profit_loss' | 'executive'>('balance');
@@ -814,7 +803,7 @@ export default function Accounting() {
 
   // Export functionality
   const handleExport = () => {
-    let dataToExport: any[] = [];
+    let dataToExport: unknown[] = [];
     let filename = '';
     
     switch (activeTab) {
@@ -906,12 +895,12 @@ export default function Accounting() {
     }
   };
 
-  const handleSubmitNewEntry = (formData: any) => {
+  const handleSubmitNewEntry = (formData: Record<string, unknown>) => {
     // Generate new ID
     const newId = `${newEntryType.toUpperCase()}_${Date.now()}`;
     
     switch (newEntryType) {
-      case 'transaction':
+      case 'transaction': {
         const newTransaction: Transaction = {
           id: newId,
           date: formData.date || new Date().toISOString().split('T')[0],
@@ -927,8 +916,9 @@ export default function Accounting() {
         };
         setTransactions([...transactions, newTransaction]);
         break;
+      }
         
-      case 'account':
+      case 'account': {
         const newAccount: Account = {
           id: newId,
           code: formData.code,
@@ -941,8 +931,9 @@ export default function Accounting() {
         };
         setAccounts([...accounts, newAccount]);
         break;
+      }
         
-      case 'journal':
+      case 'journal': {
         const newJournalEntry: JournalEntry = {
           id: newId,
           date: formData.date || new Date().toISOString().split('T')[0],
@@ -957,6 +948,7 @@ export default function Accounting() {
         };
         setJournalEntries([...journalEntries, newJournalEntry]);
         break;
+      }
     }
     
     setShowNewEntryForm(false);
@@ -964,13 +956,13 @@ export default function Accounting() {
   };
 
   // Edit functionality
-  const handleEdit = (item: any, type: 'transaction' | 'account' | 'journal' | 'tax' | 'analytic') => {
+  const handleEdit = (item: Transaction | Account | JournalEntry, type: 'transaction' | 'account' | 'journal' | 'tax' | 'analytic') => {
     setEditingItem(item);
     setEditingType(type);
     setShowEditForm(true);
   };
 
-  const handleSubmitEdit = (formData: any) => {
+  const handleSubmitEdit = (formData: Record<string, unknown>) => {
     switch (editingType) {
       case 'transaction':
         setTransactions(transactions.map(t => 
@@ -1018,7 +1010,7 @@ export default function Accounting() {
   };
 
   const generateReportContent = () => {
-    let reportData: any = {};
+    let reportData: Record<string, unknown> = {};
     
     switch (reportType) {
       case 'balance':
@@ -1653,22 +1645,22 @@ export default function Accounting() {
                 <h3 className="text-lg font-semibold text-gray-900">Tax Configuration</h3>
                 <button 
                   onClick={() => {
-                    // Create new tax configuration
-                    const newTax = {
-                      id: `tax_${Date.now()}`,
-                      name: 'New Tax',
-                      amount: 0,
-                      amountType: 'percent' as const,
-                      typeUse: 'sale' as const,
-                      scope: 'consu' as const,
-                      active: true,
-                      sequence: taxConfigurations.length + 1,
-                      priceInclude: false,
-                      includeBaseAmount: false,
-                      isBaseAffected: false,
-                      analytic: false,
-                      repartitionLines: []
-                    };
+                    // Create new tax configuration - placeholder
+                    // const newTax = {
+                    //   id: `tax_${Date.now()}`,
+                    //   name: 'New Tax',
+                    //   amount: 0,
+                    //   amountType: 'percent' as const,
+                    //   typeUse: 'sale' as const,
+                    //   scope: 'consu' as const,
+                    //   active: true,
+                    //   sequence: taxConfigurations.length + 1,
+                    //   priceInclude: false,
+                    //   includeBaseAmount: false,
+                    //   isBaseAffected: false,
+                    //   analytic: false,
+                    //   repartitionLines: []
+                    // };
                     alert('Tax configuration added! (Edit functionality would open a detailed form)');
                   }}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
@@ -1776,15 +1768,15 @@ export default function Accounting() {
                 <h3 className="text-lg font-semibold text-gray-900">Analytic Accounts</h3>
                 <button 
                   onClick={() => {
-                    const newAnalytic = {
-                      id: `ANALYTIC_${Date.now()}`,
-                      name: 'New Analytic Account',
-                      code: `ANA${Date.now()}`,
-                      active: true,
-                      balance: 0,
-                      debit: 0,
-                      credit: 0
-                    };
+                    // const newAnalytic = {
+                    //   id: `ANALYTIC_${Date.now()}`,
+                    //   name: 'New Analytic Account',
+                    //   code: `ANA${Date.now()}`,
+                    //   active: true,
+                    //   balance: 0,
+                    //   debit: 0,
+                    //   credit: 0
+                    // };
                     alert('Analytic account added! (Edit functionality would open a detailed form)');
                   }}
                   className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center space-x-2"
@@ -2274,13 +2266,13 @@ interface NewEntryFormProps {
   journals: Journal[];
   currencies: MultiCurrency[];
   selectedCurrency: string;
-  onSubmit: (formData: any) => void;
+  onSubmit: (formData: Record<string, unknown>) => void;
   onCancel: () => void;
 }
 
 function NewEntryForm({ entryType, accounts, journals, currencies, selectedCurrency, onSubmit, onCancel }: NewEntryFormProps) {
-  const [formData, setFormData] = useState<any>({});
-  const [journalEntries, setJournalEntries] = useState<any[]>([{ account: '', debit: 0, credit: 0, name: '' }]);
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [journalEntries, setJournalEntries] = useState<Record<string, unknown>[]>([{ account: '', debit: 0, credit: 0, name: '' }]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -2313,7 +2305,7 @@ function NewEntryForm({ entryType, accounts, journals, currencies, selectedCurre
     }
   };
 
-  const updateJournalEntry = (index: number, field: string, value: any) => {
+  const updateJournalEntry = (index: number, field: string, value: unknown) => {
     const updated = [...journalEntries];
     updated[index] = { ...updated[index], [field]: value };
     
@@ -2683,17 +2675,17 @@ function NewEntryForm({ entryType, accounts, journals, currencies, selectedCurre
 // Edit Form Component
 interface EditFormProps {
   editingType: 'transaction' | 'account' | 'journal' | 'tax' | 'analytic';
-  editingItem: any;
+  editingItem: Transaction | Account | JournalEntry;
   accounts: Account[];
   journals: Journal[];
   currencies: MultiCurrency[];
   selectedCurrency: string;
-  onSubmit: (formData: any) => void;
+  onSubmit: (formData: Record<string, unknown>) => void;
   onCancel: () => void;
 }
 
-function EditForm({ editingType, editingItem, accounts, journals, currencies, selectedCurrency, onSubmit, onCancel }: EditFormProps) {
-  const [formData, setFormData] = useState<any>(editingItem || {});
+function EditForm({ editingType, editingItem, accounts, currencies, selectedCurrency, onSubmit, onCancel }: EditFormProps) {
+  const [formData, setFormData] = useState<Record<string, unknown>>(editingItem || {});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -2934,7 +2926,7 @@ function EditForm({ editingType, editingItem, accounts, journals, currencies, se
 
 // Report Viewer Component
 interface ReportViewerProps {
-  reportData: any;
+  reportData: Record<string, unknown>;
   formatCurrency: (amount: number) => string;
 }
 
@@ -2953,7 +2945,7 @@ function ReportViewer({ reportData, formatCurrency }: ReportViewerProps) {
           <div className="space-y-3">
             <div>
               <h4 className="font-medium text-gray-700">Current Assets</h4>
-              {reportData.assets.current.map((account: any) => (
+              {(reportData.assets.current as Account[]).map((account: Account) => (
                 <div key={account.id} className="flex justify-between text-sm ml-4">
                   <span>{account.name}</span>
                   <span>{formatCurrency(account.balance)}</span>
@@ -2962,7 +2954,7 @@ function ReportViewer({ reportData, formatCurrency }: ReportViewerProps) {
             </div>
             <div>
               <h4 className="font-medium text-gray-700">Non-Current Assets</h4>
-              {reportData.assets.nonCurrent.map((account: any) => (
+              {(reportData.assets.nonCurrent as Account[]).map((account: Account) => (
                 <div key={account.id} className="flex justify-between text-sm ml-4">
                   <span>{account.name}</span>
                   <span>{formatCurrency(account.balance)}</span>
@@ -2984,7 +2976,7 @@ function ReportViewer({ reportData, formatCurrency }: ReportViewerProps) {
           <div className="space-y-3">
             <div>
               <h4 className="font-medium text-gray-700">Current Liabilities</h4>
-              {reportData.liabilities.current.map((account: any) => (
+              {(reportData.liabilities.current as Account[]).map((account: Account) => (
                 <div key={account.id} className="flex justify-between text-sm ml-4">
                   <span>{account.name}</span>
                   <span>{formatCurrency(account.balance)}</span>
@@ -2993,7 +2985,7 @@ function ReportViewer({ reportData, formatCurrency }: ReportViewerProps) {
             </div>
             <div>
               <h4 className="font-medium text-gray-700">Non-Current Liabilities</h4>
-              {reportData.liabilities.nonCurrent.map((account: any) => (
+              {(reportData.liabilities.nonCurrent as Account[]).map((account: Account) => (
                 <div key={account.id} className="flex justify-between text-sm ml-4">
                   <span>{account.name}</span>
                   <span>{formatCurrency(account.balance)}</span>
@@ -3008,7 +3000,7 @@ function ReportViewer({ reportData, formatCurrency }: ReportViewerProps) {
             </div>
             <div className="mt-4">
               <h4 className="font-medium text-gray-700">Equity</h4>
-              {reportData.equity.accounts.map((account: any) => (
+              {(reportData.equity.accounts as Account[]).map((account: Account) => (
                 <div key={account.id} className="flex justify-between text-sm ml-4">
                   <span>{account.name}</span>
                   <span>{formatCurrency(account.balance)}</span>
@@ -3043,7 +3035,7 @@ function ReportViewer({ reportData, formatCurrency }: ReportViewerProps) {
       <div className="space-y-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-3">REVENUE</h3>
-          {reportData.revenue.map((account: any) => (
+          {(reportData.revenue as Account[]).map((account: Account) => (
             <div key={account.id} className="flex justify-between text-sm ml-4">
               <span>{account.name}</span>
               <span>{formatCurrency(account.balance)}</span>
@@ -3059,7 +3051,7 @@ function ReportViewer({ reportData, formatCurrency }: ReportViewerProps) {
         
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-3">EXPENSES</h3>
-          {reportData.expenses.map((account: any) => (
+          {(reportData.expenses as Account[]).map((account: Account) => (
             <div key={account.id} className="flex justify-between text-sm ml-4">
               <span>{account.name}</span>
               <span>{formatCurrency(account.balance)}</span>

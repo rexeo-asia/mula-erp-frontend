@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Edit, Trash2, Eye, Download, Send, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, Download, Send, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import AddPurchaseOrderModal from '../components/modals/AddPurchaseOrderModal';
 
 interface PurchaseOrder {

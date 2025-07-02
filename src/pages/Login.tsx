@@ -44,7 +44,7 @@ export default function Login() {
     try {
       await loadPreloginData(email);
       setShowImageSelection(true);
-    } catch (err: unknown) {
+    } catch {
       setError('Failed to load security data. You can still proceed with password login.');
       setCasPreloginFailed(true);
     } finally {
@@ -67,7 +67,7 @@ export default function Login() {
         setSelectedImageId('');
         setImageVerified(false);
       }
-    } catch (err: unknown) {
+    } catch {
       setError('Failed to verify security image. Please try again.');
       setSelectedImageId('');
       setImageVerified(false);
@@ -86,7 +86,7 @@ export default function Login() {
       if (!success) {
         setError('Invalid credentials. For demo access, use demo@demo.net / demo');
       }
-    } catch (err: unknown) {
+    } catch {
       setError('Login failed. Please try again.');
     } finally {
       setLoading(false);
@@ -107,7 +107,7 @@ export default function Login() {
       } else {
         setError('Password reset failed. Please try again.');
       }
-    } catch (err: unknown) {
+    } catch {
       setError('Password reset failed. Please try again.');
     } finally {
       setLoading(false);

@@ -222,7 +222,6 @@ export default function POS() {
 
     // Update session balance
     if (currentSession) {
-      const balanceChange = cashType === 'in' ? cashAmount : -cashAmount;
       const updatedSession = {
         ...currentSession,
         totalCash: currentSession.totalCash + (cashType === 'in' ? cashAmount : 0)
@@ -285,7 +284,7 @@ export default function POS() {
       await navigator.clipboard.writeText(sessionHash);
       setHashCopied(true);
       setTimeout(() => setHashCopied(false), 2000);
-    } catch (error: unknown) {
+    } catch {
       const textArea = document.createElement('textarea');
       textArea.value = sessionHash;
       document.body.appendChild(textArea);

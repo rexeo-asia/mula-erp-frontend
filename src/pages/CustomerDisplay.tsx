@@ -81,7 +81,7 @@ export default function CustomerDisplay() {
             setSessionData(null);
           }
         }
-      } catch (error) {
+      } catch {
         setError('Failed to parse session data. The data may be corrupted.');
         setSessionData(null);
       }
