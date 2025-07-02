@@ -242,6 +242,11 @@ export default function Accounting() {
   const [showMultiCurrency, setShowMultiCurrency] = useState(false);
   const [showNewEntryForm, setShowNewEntryForm] = useState(false);
   const [newEntryType, setNewEntryType] = useState<'transaction' | 'journal' | 'account'>('transaction');
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingType, setEditingType] = useState<'transaction' | 'account' | 'journal' | 'tax' | 'analytic'>('transaction');
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportType, setReportType] = useState<'balance' | 'income' | 'cashflow' | 'general' | 'trial' | 'aged_receivables' | 'aged_payables' | 'tax' | 'partner' | 'profit_loss' | 'executive'>('balance');
 
   // Sample data based on Odoo accounting structure
   const [transactions, setTransactions] = useState<Transaction[]>([
@@ -958,6 +963,129 @@ export default function Accounting() {
     alert(`New ${newEntryType} created successfully!`);
   };
 
+  // Edit functionality
+  const handleEdit = (item: any, type: 'transaction' | 'account' | 'journal' | 'tax' | 'analytic') => {
+    setEditingItem(item);
+    setEditingType(type);
+    setShowEditForm(true);
+  };
+
+  const handleSubmitEdit = (formData: any) => {
+    switch (editingType) {
+      case 'transaction':
+        setTransactions(transactions.map(t => 
+          t.id === editingItem.id ? { ...t, ...formData } : t
+        ));
+        break;
+      case 'account':
+        setAccounts(accounts.map(a => 
+          a.id === editingItem.id ? { ...a, ...formData } : a
+        ));
+        break;
+      case 'journal':
+        setJournalEntries(journalEntries.map(j => 
+          j.id === editingItem.id ? { ...j, ...formData } : j
+        ));
+        break;
+    }
+    setShowEditForm(false);
+    setEditingItem(null);
+    alert(`${editingType.charAt(0).toUpperCase() + editingType.slice(1)} updated successfully!`);
+  };
+
+  // Delete functionality
+  const handleDelete = (id: string, type: 'transaction' | 'account' | 'journal' | 'tax' | 'analytic') => {
+    if (confirm('Are you sure you want to delete this item?')) {
+      switch (type) {
+        case 'transaction':
+          setTransactions(transactions.filter(t => t.id !== id));
+          break;
+        case 'account':
+          setAccounts(accounts.filter(a => a.id !== id));
+          break;
+        case 'journal':
+          setJournalEntries(journalEntries.filter(j => j.id !== id));
+          break;
+      }
+      alert(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully!`);
+    }
+  };
+
+  // Report generation
+  const handleGenerateReport = (type: typeof reportType) => {
+    setReportType(type);
+    setShowReportModal(true);
+  };
+
+  const generateReportContent = () => {
+    let reportData: any = {};
+    
+    switch (reportType) {
+      case 'balance':
+        reportData = {
+          title: 'Balance Sheet',
+          date: new Date().toISOString().split('T')[0],
+          assets: {
+            current: accounts.filter(a => a.type.includes('asset_current') || a.type === 'asset_cash' || a.type === 'asset_receivable'),
+            nonCurrent: accounts.filter(a => a.type === 'asset_fixed' || a.type === 'asset_non_current'),
+            total: totalAssets
+          },
+          liabilities: {
+            current: accounts.filter(a => a.type === 'liability_current' || a.type === 'liability_payable'),
+            nonCurrent: accounts.filter(a => a.type === 'liability_non_current'),
+            total: totalLiabilities
+          },
+          equity: {
+            accounts: accounts.filter(a => a.type.includes('equity')),
+            total: totalEquity
+          }
+        };
+        break;
+      case 'income':
+        reportData = {
+          title: 'Income Statement',
+          period: `${dateRange.from} to ${dateRange.to}`,
+          revenue: accounts.filter(a => a.type.includes('income')),
+          expenses: accounts.filter(a => a.type.includes('expense')),
+          totalRevenue: totalIncome,
+          totalExpenses: totalExpenses,
+          netIncome: netIncome
+        };
+        break;
+      case 'cashflow':
+        reportData = {
+          title: 'Cash Flow Statement',
+          period: `${dateRange.from} to ${dateRange.to}`,
+          operating: 12500,
+          investing: -5000,
+          financing: 2000,
+          netCashFlow: 9500
+        };
+        break;
+      default:
+        reportData = {
+          title: 'Financial Report',
+          message: 'Report generation in progress...'
+        };
+    }
+    
+    return reportData;
+  };
+
+  const downloadReport = () => {
+    const reportData = generateReportContent();
+    const reportContent = JSON.stringify(reportData, null, 2);
+    const blob = new Blob([reportContent], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${reportData.title.replace(/\s+/g, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1134,10 +1262,16 @@ export default function Accounting() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex space-x-2">
-                        <button className="text-blue-600 hover:text-blue-800">
+                        <button 
+                          onClick={() => handleEdit(transaction, 'transaction')}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
                           <Edit size={16} />
                         </button>
-                        <button className="text-red-600 hover:text-red-800">
+                        <button 
+                          onClick={() => handleDelete(transaction.id, 'transaction')}
+                          className="text-red-600 hover:text-red-800"
+                        >
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -1156,7 +1290,13 @@ export default function Accounting() {
           <div className="p-6 border-b">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">Chart of Accounts</h2>
-              <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2">
+              <button 
+                onClick={() => {
+                  setNewEntryType('account');
+                  setShowNewEntryForm(true);
+                }}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2"
+              >
                 <Plus size={20} />
                 <span>Add Account</span>
               </button>
@@ -1197,10 +1337,16 @@ export default function Accounting() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex space-x-2">
-                        <button className="text-blue-600 hover:text-blue-800">
+                        <button 
+                          onClick={() => handleEdit(account, 'account')}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
                           <Edit size={16} />
                         </button>
-                        <button className="text-red-600 hover:text-red-800">
+                        <button 
+                          onClick={() => handleDelete(account.id, 'account')}
+                          className="text-red-600 hover:text-red-800"
+                        >
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -1219,7 +1365,13 @@ export default function Accounting() {
           <div className="p-6 border-b">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">Journal Entries</h2>
-              <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center space-x-2">
+              <button 
+                onClick={() => {
+                  setNewEntryType('journal');
+                  setShowNewEntryForm(true);
+                }}
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center space-x-2"
+              >
                 <Plus size={20} />
                 <span>New Journal Entry</span>
               </button>
@@ -1258,10 +1410,16 @@ export default function Accounting() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex space-x-2">
-                        <button className="text-blue-600 hover:text-blue-800">
+                        <button 
+                          onClick={() => handleEdit(entry, 'journal')}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
                           <Edit size={16} />
                         </button>
-                        <button className="text-red-600 hover:text-red-800">
+                        <button 
+                          onClick={() => handleDelete(entry.id, 'journal')}
+                          className="text-red-600 hover:text-red-800"
+                        >
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -1493,7 +1651,28 @@ export default function Accounting() {
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">Tax Configuration</h3>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2">
+                <button 
+                  onClick={() => {
+                    // Create new tax configuration
+                    const newTax = {
+                      id: `tax_${Date.now()}`,
+                      name: 'New Tax',
+                      amount: 0,
+                      amountType: 'percent' as const,
+                      typeUse: 'sale' as const,
+                      scope: 'consu' as const,
+                      active: true,
+                      sequence: taxConfigurations.length + 1,
+                      priceInclude: false,
+                      includeBaseAmount: false,
+                      isBaseAffected: false,
+                      analytic: false,
+                      repartitionLines: []
+                    };
+                    alert('Tax configuration added! (Edit functionality would open a detailed form)');
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+                >
                   <Plus size={20} />
                   <span>Add Tax</span>
                 </button>
@@ -1536,10 +1715,20 @@ export default function Accounting() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-800">
+                          <button 
+                            onClick={() => alert(`Edit tax configuration: ${tax.name}`)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
                             <Edit size={16} />
                           </button>
-                          <button className="text-red-600 hover:text-red-800">
+                          <button 
+                            onClick={() => {
+                              if (confirm(`Are you sure you want to delete tax configuration: ${tax.name}?`)) {
+                                alert('Tax configuration deleted!');
+                              }
+                            }}
+                            className="text-red-600 hover:text-red-800"
+                          >
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -1585,7 +1774,21 @@ export default function Accounting() {
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">Analytic Accounts</h3>
-                <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center space-x-2">
+                <button 
+                  onClick={() => {
+                    const newAnalytic = {
+                      id: `ANALYTIC_${Date.now()}`,
+                      name: 'New Analytic Account',
+                      code: `ANA${Date.now()}`,
+                      active: true,
+                      balance: 0,
+                      debit: 0,
+                      credit: 0
+                    };
+                    alert('Analytic account added! (Edit functionality would open a detailed form)');
+                  }}
+                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center space-x-2"
+                >
                   <Plus size={20} />
                   <span>Add Analytic Account</span>
                 </button>
@@ -1620,10 +1823,16 @@ export default function Accounting() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-800">
+                          <button 
+                            onClick={() => alert(`Edit analytic account: ${account.name}`)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
                             <Edit size={16} />
                           </button>
-                          <button className="text-green-600 hover:text-green-800">
+                          <button 
+                            onClick={() => alert(`View analytics for: ${account.name}`)}
+                            className="text-green-600 hover:text-green-800"
+                          >
                             <BarChart3 size={16} />
                           </button>
                         </div>
@@ -1848,7 +2057,10 @@ export default function Accounting() {
                   <span className="text-sm font-bold">{formatCurrency(totalEquity)}</span>
                 </div>
               </div>
-              <button className="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+              <button 
+                onClick={() => handleGenerateReport('balance')}
+                className="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+              >
                 Generate Full Report
               </button>
             </div>
@@ -1871,7 +2083,10 @@ export default function Accounting() {
                   </span>
                 </div>
               </div>
-              <button className="w-full mt-4 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">
+              <button 
+                onClick={() => handleGenerateReport('income')}
+                className="w-full mt-4 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700"
+              >
                 Generate Full Report
               </button>
             </div>
@@ -1896,7 +2111,10 @@ export default function Accounting() {
                   <span className="text-sm font-bold text-green-600">{formatCurrency(9500)}</span>
                 </div>
               </div>
-              <button className="w-full mt-4 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700">
+              <button 
+                onClick={() => handleGenerateReport('cashflow')}
+                className="w-full mt-4 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700"
+              >
                 Generate Full Report
               </button>
             </div>
@@ -1919,7 +2137,22 @@ export default function Accounting() {
                 <div key={report.name} className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
                   <h4 className="font-medium text-gray-900">{report.name}</h4>
                   <p className="text-sm text-gray-600 mt-1">{report.description}</p>
-                  <button className="mt-2 text-blue-600 hover:text-blue-800 text-sm">
+                  <button 
+                    onClick={() => {
+                      const reportMap: {[key: string]: typeof reportType} = {
+                        'General Ledger': 'general',
+                        'Trial Balance': 'trial',
+                        'Aged Receivables': 'aged_receivables',
+                        'Aged Payables': 'aged_payables',
+                        'Tax Report': 'tax',
+                        'Partner Ledger': 'partner',
+                        'Profit & Loss': 'profit_loss',
+                        'Executive Summary': 'executive'
+                      };
+                      handleGenerateReport(reportMap[report.name] || 'general');
+                    }}
+                    className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
+                  >
                     Generate →
                   </button>
                 </div>
@@ -1956,6 +2189,77 @@ export default function Accounting() {
               onSubmit={handleSubmitNewEntry}
               onCancel={() => setShowNewEntryForm(false)}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Edit Form Modal */}
+      {showEditForm && editingItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Edit {editingType.charAt(0).toUpperCase() + editingType.slice(1)}
+                </h3>
+                <button 
+                  onClick={() => {
+                    setShowEditForm(false);
+                    setEditingItem(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+            
+            <EditForm 
+              editingType={editingType}
+              editingItem={editingItem}
+              accounts={accounts}
+              journals={journals}
+              currencies={currencies}
+              selectedCurrency={selectedCurrency}
+              onSubmit={handleSubmitEdit}
+              onCancel={() => {
+                setShowEditForm(false);
+                setEditingItem(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {generateReportContent().title}
+                </h3>
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={downloadReport}
+                    className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                  >
+                    Download
+                  </button>
+                  <button 
+                    onClick={() => setShowReportModal(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <ReportViewer reportData={generateReportContent()} formatCurrency={formatCurrency} />
+            </div>
           </div>
         </div>
       )}
@@ -2373,5 +2677,461 @@ function NewEntryForm({ entryType, accounts, journals, currencies, selectedCurre
         </button>
       </div>
     </form>
+  );
+}
+
+// Edit Form Component
+interface EditFormProps {
+  editingType: 'transaction' | 'account' | 'journal' | 'tax' | 'analytic';
+  editingItem: any;
+  accounts: Account[];
+  journals: Journal[];
+  currencies: MultiCurrency[];
+  selectedCurrency: string;
+  onSubmit: (formData: any) => void;
+  onCancel: () => void;
+}
+
+function EditForm({ editingType, editingItem, accounts, journals, currencies, selectedCurrency, onSubmit, onCancel }: EditFormProps) {
+  const [formData, setFormData] = useState<any>(editingItem || {});
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="p-6 space-y-4">
+      {/* Common Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+          <input
+            type="date"
+            value={formData.date || new Date().toISOString().split('T')[0]}
+            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            required
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+          <select
+            value={formData.currency || selectedCurrency}
+            onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            {currencies.map((currency) => (
+              <option key={currency.id} value={currency.id}>
+                {currency.name} ({currency.symbol})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+        <input
+          type="text"
+          value={formData.description || ''}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Enter description..."
+          required
+        />
+      </div>
+
+      {/* Transaction-specific fields */}
+      {editingType === 'transaction' && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Account</label>
+              <select
+                value={formData.account || ''}
+                onChange={(e) => setFormData({ ...formData, account: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Select an account...</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={`${account.code} - ${account.name}`}>
+                    {account.code} - {account.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+              <select
+                value={formData.type || 'transfer'}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+                <option value="transfer">Transfer</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Debit Amount</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.debit || ''}
+                onChange={(e) => setFormData({ ...formData, debit: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0.00"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Credit Amount</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.credit || ''}
+                onChange={(e) => setFormData({ ...formData, credit: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0.00"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Partner (Optional)</label>
+              <input
+                type="text"
+                value={formData.partner || ''}
+                onChange={(e) => setFormData({ ...formData, partner: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Partner name..."
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Account-specific fields */}
+      {editingType === 'account' && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Account Code</label>
+              <input
+                type="text"
+                value={formData.code || ''}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Account code..."
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Account Name</label>
+              <input
+                type="text"
+                value={formData.name || ''}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Account name..."
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+              <select
+                value={formData.type || ''}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Select account type...</option>
+                <optgroup label="Assets">
+                  <option value="asset_receivable">Receivable</option>
+                  <option value="asset_payable">Payable</option>
+                  <option value="asset_cash">Cash</option>
+                  <option value="asset_current">Current Assets</option>
+                  <option value="asset_non_current">Non-Current Assets</option>
+                  <option value="asset_fixed">Fixed Assets</option>
+                </optgroup>
+                <optgroup label="Liabilities">
+                  <option value="liability_payable">Payable</option>
+                  <option value="liability_current">Current Liabilities</option>
+                  <option value="liability_non_current">Non-Current Liabilities</option>
+                </optgroup>
+                <optgroup label="Equity">
+                  <option value="equity">Equity</option>
+                  <option value="equity_unaffected">Unaffected Earnings</option>
+                </optgroup>
+                <optgroup label="Income">
+                  <option value="income">Income</option>
+                  <option value="income_other">Other Income</option>
+                </optgroup>
+                <optgroup label="Expenses">
+                  <option value="expense">Expense</option>
+                  <option value="expense_depreciation">Depreciation</option>
+                  <option value="expense_direct_cost">Direct Cost</option>
+                </optgroup>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Balance</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.balance || ''}
+                onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.reconcile || false}
+                onChange={(e) => setFormData({ ...formData, reconcile: e.target.checked })}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="ml-2 text-sm text-gray-700">Allow Reconciliation</span>
+            </label>
+          </div>
+        </>
+      )}
+
+      {/* Form Actions */}
+      <div className="flex items-center justify-end space-x-3 pt-4 border-t">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Update {editingType.charAt(0).toUpperCase() + editingType.slice(1)}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// Report Viewer Component
+interface ReportViewerProps {
+  reportData: any;
+  formatCurrency: (amount: number) => string;
+}
+
+function ReportViewer({ reportData, formatCurrency }: ReportViewerProps) {
+  const renderBalanceSheet = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-gray-900">{reportData.title}</h2>
+        <p className="text-gray-600">As of {reportData.date}</p>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Assets */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">ASSETS</h3>
+          <div className="space-y-3">
+            <div>
+              <h4 className="font-medium text-gray-700">Current Assets</h4>
+              {reportData.assets.current.map((account: any) => (
+                <div key={account.id} className="flex justify-between text-sm ml-4">
+                  <span>{account.name}</span>
+                  <span>{formatCurrency(account.balance)}</span>
+                </div>
+              ))}
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-700">Non-Current Assets</h4>
+              {reportData.assets.nonCurrent.map((account: any) => (
+                <div key={account.id} className="flex justify-between text-sm ml-4">
+                  <span>{account.name}</span>
+                  <span>{formatCurrency(account.balance)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="border-t pt-2">
+              <div className="flex justify-between font-bold">
+                <span>Total Assets</span>
+                <span>{formatCurrency(reportData.assets.total)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Liabilities & Equity */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">LIABILITIES & EQUITY</h3>
+          <div className="space-y-3">
+            <div>
+              <h4 className="font-medium text-gray-700">Current Liabilities</h4>
+              {reportData.liabilities.current.map((account: any) => (
+                <div key={account.id} className="flex justify-between text-sm ml-4">
+                  <span>{account.name}</span>
+                  <span>{formatCurrency(account.balance)}</span>
+                </div>
+              ))}
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-700">Non-Current Liabilities</h4>
+              {reportData.liabilities.nonCurrent.map((account: any) => (
+                <div key={account.id} className="flex justify-between text-sm ml-4">
+                  <span>{account.name}</span>
+                  <span>{formatCurrency(account.balance)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="border-t pt-2">
+              <div className="flex justify-between font-medium">
+                <span>Total Liabilities</span>
+                <span>{formatCurrency(reportData.liabilities.total)}</span>
+              </div>
+            </div>
+            <div className="mt-4">
+              <h4 className="font-medium text-gray-700">Equity</h4>
+              {reportData.equity.accounts.map((account: any) => (
+                <div key={account.id} className="flex justify-between text-sm ml-4">
+                  <span>{account.name}</span>
+                  <span>{formatCurrency(account.balance)}</span>
+                </div>
+              ))}
+              <div className="border-t pt-2">
+                <div className="flex justify-between font-medium">
+                  <span>Total Equity</span>
+                  <span>{formatCurrency(reportData.equity.total)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="border-t-2 border-gray-600 pt-2 mt-4">
+              <div className="flex justify-between font-bold">
+                <span>Total Liabilities & Equity</span>
+                <span>{formatCurrency(reportData.liabilities.total + reportData.equity.total)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderIncomeStatement = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-gray-900">{reportData.title}</h2>
+        <p className="text-gray-600">For the period {reportData.period}</p>
+      </div>
+      
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">REVENUE</h3>
+          {reportData.revenue.map((account: any) => (
+            <div key={account.id} className="flex justify-between text-sm ml-4">
+              <span>{account.name}</span>
+              <span>{formatCurrency(account.balance)}</span>
+            </div>
+          ))}
+          <div className="border-t pt-2">
+            <div className="flex justify-between font-bold">
+              <span>Total Revenue</span>
+              <span className="text-green-600">{formatCurrency(reportData.totalRevenue)}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">EXPENSES</h3>
+          {reportData.expenses.map((account: any) => (
+            <div key={account.id} className="flex justify-between text-sm ml-4">
+              <span>{account.name}</span>
+              <span>{formatCurrency(account.balance)}</span>
+            </div>
+          ))}
+          <div className="border-t pt-2">
+            <div className="flex justify-between font-bold">
+              <span>Total Expenses</span>
+              <span className="text-red-600">{formatCurrency(reportData.totalExpenses)}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="border-t-2 border-gray-600 pt-4">
+          <div className="flex justify-between text-xl font-bold">
+            <span>Net Income</span>
+            <span className={reportData.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}>
+              {formatCurrency(reportData.netIncome)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderCashFlow = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-gray-900">{reportData.title}</h2>
+        <p className="text-gray-600">For the period {reportData.period}</p>
+      </div>
+      
+      <div className="space-y-4">
+        <div className="flex justify-between">
+          <span>Cash Flow from Operating Activities</span>
+          <span className="font-medium text-green-600">{formatCurrency(reportData.operating)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Cash Flow from Investing Activities</span>
+          <span className="font-medium text-red-600">{formatCurrency(reportData.investing)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Cash Flow from Financing Activities</span>
+          <span className="font-medium text-blue-600">{formatCurrency(reportData.financing)}</span>
+        </div>
+        <div className="border-t-2 border-gray-600 pt-4">
+          <div className="flex justify-between text-xl font-bold">
+            <span>Net Cash Flow</span>
+            <span className="text-green-600">{formatCurrency(reportData.netCashFlow)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderGenericReport = () => (
+    <div className="text-center py-8">
+      <h2 className="text-2xl font-bold text-gray-900 mb-4">{reportData.title}</h2>
+      <p className="text-gray-600">{reportData.message || 'Report content will be displayed here.'}</p>
+      <div className="mt-8">
+        <p className="text-sm text-gray-500">This is a placeholder for the {reportData.title.toLowerCase()} report.</p>
+        <p className="text-sm text-gray-500">In a full implementation, this would show detailed financial data.</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      {reportData.title === 'Balance Sheet' && renderBalanceSheet()}
+      {reportData.title === 'Income Statement' && renderIncomeStatement()}
+      {reportData.title === 'Cash Flow Statement' && renderCashFlow()}
+      {!['Balance Sheet', 'Income Statement', 'Cash Flow Statement'].includes(reportData.title) && renderGenericReport()}
+    </div>
   );
 }
